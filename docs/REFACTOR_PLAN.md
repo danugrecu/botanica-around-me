@@ -38,7 +38,7 @@ Questa è la prima fase di codice. È esclusivamente strutturale: non spezza mod
 
 **OBIETTIVO**: creare i contenitori target e registrare una mappa uno-a-uno tra percorsi attuali e percorsi futuri, senza cambiare ancora gli import o il runtime.
 
-**FILE COINVOLTI**: nuovi percorsi `src/frontend/`, `data/catalog/`, `data/forecast/`, `vendor/leaflet/`, `public/` se necessario; `docs/TARGET_ARCHITECTURE.md`; eventuale nota di manifest nel build.
+**FILE COINVOLTI**: nuovi percorsi `src/frontend/`, `data/catalog/`, `data/forecast/`, `vendor/leaflet/`; `docs/TARGET_ARCHITECTURE.md`; eventuale nota di manifest nel build.
 
 **PERCORSI PRIMA / DOPO**:
 
@@ -48,7 +48,7 @@ dist/model.mjs, display.mjs
 	-> src/frontend/
 
 dist/index.html, dist/style.css
-	-> src/frontend/ o public/ secondo il ruolo statico definito dal build
+	-> src/frontend/index.html, src/frontend/style.css
 
 dist/forecast-points.json
 	-> data/forecast/forecast-points.json
