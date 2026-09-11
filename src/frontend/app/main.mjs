@@ -7,9 +7,11 @@
  */
 import { percent } from '../shared/display.mjs';
 import { distanceKm, directionFrom, insideMaremma } from '../shared/geo.mjs';
+import { buildGridScanPoints } from '../analysis/grid-scan.mjs';
 import { setupForecast } from '../forecast/forecast.mjs';
 import { setupAround } from '../around/around.mjs';
 import { fetchBrowserWeather } from '../clients/weather.mjs';
+import { getEnvironment, getLand } from '../clients/botanica-api.mjs';
 import {
   backupDiaryJson,
   exportDiaryCsv,
@@ -126,11 +128,9 @@ async function selectPoint(lat, lon, name = 'Punto nel bosco') {
     map.panTo([lat, lon]);
   }
   try {
-    const r = await fetch(`/api/environment?lat=${lat}&lon=${lon}`, {
+    const result = await getEnvironment({ lat, lon }, null, {
       signal: AbortSignal.any([controller.signal, AbortSignal.timeout(65000)]),
     });
-    if (!r.ok) throw Error('Analisi non disponibile');
-    const result = await r.json();
     if (result.weather?.status !== 'ok')
       try {
         result.weather = await fetchBrowserWeather(lat, lon);
@@ -268,17 +268,7 @@ async function scan() {
   $('#nearby').innerHTML =
     '<div class="card">Interrogo 9 punti distanziati di circa 500 m. Il confronto può richiedere circa un minuto…</div>';
   $('#scan').disabled = true;
-  const todo = [];
-  for (let y = -1; y <= 1; y++)
-    for (let x = -1; x <= 1; x++)
-      todo.push({
-        lat: original.lat + (y * 500) / 111320,
-        lon: original.lon + (x * 500) / (111320 * Math.cos((original.lat * Math.PI) / 180)),
-        name:
-          y === 0 && x === 0
-            ? 'Centro'
-            : `${y > 0 ? 'Nord' : y < 0 ? 'Sud' : ''}${x > 0 ? ' est' : x < 0 ? ' ovest' : ''}`,
-      });
+  const todo = buildGridScanPoints(original, 500);
   let next = 0;
   async function worker() {
     while (next < todo.length && id === scanRequest) {
@@ -287,11 +277,9 @@ async function scan() {
         let e;
         if (p.name === 'Centro') e = env;
         else {
-          const res = await fetch(`/api/land?lat=${p.lat}&lon=${p.lon}`, {
+          e = await getLand({ lat: p.lat, lon: p.lon }, null, {
             signal: AbortSignal.timeout(90000),
           });
-          if (!res.ok) throw Error();
-          e = await res.json();
           e.weather = weather;
         }
         if (id !== scanRequest) return;

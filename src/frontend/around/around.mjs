@@ -3,6 +3,7 @@
  * Riceve dal controller solo mappa e stato corrente; carica i dati da /api/around.
  */
 import { fetchBrowserWeather, sevenDayWeather } from '../clients/weather.mjs';
+import { getAroundContext } from '../clients/botanica-api.mjs';
 import { distanceKm } from '../shared/geo.mjs';
 
 const esc = (s) =>
@@ -449,11 +450,9 @@ export function setupAround({
     try {
       if (!force && cached && Date.now() - cached.at < 30 * 60 * 1000) data = cached.data;
       else {
-        const res = await fetch(`/api/around?lat=${c.lat}&lon=${c.lon}&radius=${r}`, {
+        data = await getAroundContext({ lat: c.lat, lon: c.lon }, null, r, {
           signal: AbortSignal.any([controller.signal, AbortSignal.timeout(65000)]),
         });
-        if (!res.ok) throw Error();
-        data = await res.json();
         if (data.weather?.status !== 'ok')
           try {
             data.weather = sevenDayWeather(await fetchBrowserWeather(c.lat, c.lon));
