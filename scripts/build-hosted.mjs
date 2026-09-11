@@ -25,9 +25,9 @@ async function collect(dir, prefix = '') {
       };
   }
 }
+await buildAssets();
 await collect(path.join(root, 'dist'));
 const manifest = JSON.parse(await readFile(path.join(root, '.openai/hosting.json'), 'utf8'));
-await buildAssets();
 const code = await readFile(path.join(root, 'src/backend/hosted/backend.mjs'), 'utf8');
 await mkdir(path.join(root, 'dist/server'), { recursive: true });
 await mkdir(path.join(root, 'dist/.openai'), { recursive: true });

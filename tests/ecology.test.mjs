@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {predict,habitat,profiles,num} from '../dist/ecology.mjs';
+import {predict,habitat,profiles,num} from '../dist/ecology/ecology.mjs';
 const time=Array.from({length:37},(_,i)=>new Date(Date.UTC(2026,7,11+i,12)).toISOString().slice(0,10));
 const constant=n=>time.map(()=>n),hours=time.flatMap(t=>Array.from({length:24},(_,i)=>`${t}T${String(i).padStart(2,'0')}:00`));
 const env={forest:{status:'ok',features:[{layer:'rt_ucs.iducs.10k.2019.rt.full',properties:{ucs2019:'311',des2019:'Boschi di latifoglie'}},{layer:'rt_ucs.idvegfor.rt.4',properties:{}}]},soil:{features:[{properties:{awc:'160',sab:'30',arg:'25',sostorg:'2'}}]},terrain:{elevation:400,slope:15,aspect:0},weather:{daily:{time,precipitation_sum:constant(4),temperature_2m_mean:constant(19),temperature_2m_min:constant(13),temperature_2m_max:constant(23),wind_speed_10m_max:constant(10),et0_fao_evapotranspiration:constant(2)},hourly:{time:hours,...Object.fromEntries(Object.entries({soil_temperature_6cm:19,soil_moisture_3_to_9cm:.27,soil_moisture_9_to_27cm:.29,relative_humidity_2m:75,vapour_pressure_deficit:.5}).map(([k,v])=>[k,hours.map(()=>v)]))}}};

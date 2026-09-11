@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {outdoorScore,sevenDayWeather} from '../dist/weather.mjs';
+import {outdoorScore,sevenDayWeather} from '../dist/clients/weather.mjs';
 
 assert.equal(outdoorScore(0,24,10),100);
 assert.ok(outdoorScore(8,34,35)<outdoorScore(0,24,10));

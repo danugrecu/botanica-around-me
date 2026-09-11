@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {summarizeForecast} from '../dist/forecast.mjs';
+import {summarizeForecast} from '../dist/forecast/forecast.mjs';
 const days=['2026-09-10','2026-09-11'];
 const result=summarizeForecast({},days,'porcini',days[0]);assert.equal(result.best,null);assert.equal(result.window,null);assert.equal(result.current.score,null);assert.equal(result.daily.length,2);
 const full=Array.from({length:37},(_,i)=>new Date(Date.UTC(2026,7,11+i,12)).toISOString().slice(0,10));
