@@ -1,0 +1,23 @@
+[
+ {"id":"montioni","lat":42.985,"lon":10.755,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"scarlino","lat":42.89,"lon":10.8,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"massa","lat":43.074,"lon":10.904,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"cornate","lat":43.154,"lon":10.96,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"roccastrada","lat":43.028,"lon":11.101,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"farma","lat":43.082,"lon":11.183,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"tirli","lat":42.891,"lon":10.943,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"monti-leoni","lat":42.925,"lon":11.115,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"uccellina","lat":42.65,"lon":11.09,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"civitella","lat":42.995,"lon":11.28,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"cinigiano","lat":42.89,"lon":11.39,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"scansano","lat":42.72,"lon":11.3,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"amiata","lat":42.9,"lon":11.6,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"pescinello","lat":42.82,"lon":11.49,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"castellazzara","lat":42.78,"lon":11.68,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"sovana","lat":42.655,"lon":11.65,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"rocconi","lat":42.63,"lon":11.5,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"montauto","lat":42.52,"lon":11.52,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"capalbio","lat":42.455,"lon":11.43,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"argentario","lat":42.42,"lon":11.17,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"},
+ {"id":"giglio","lat":42.36,"lon":10.9,"checkedOn":"2026-09-11","cartography":"UCS 2019 · verifica live"}
+]

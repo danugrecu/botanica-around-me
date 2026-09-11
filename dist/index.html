@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#153e35" />
+    <meta
+      name="description"
+      content="Botanica Around Me: sentieri, natura, flora, meteo e condizioni per i funghi in Maremma."
+    />
+    <title>Botanica — Around Me Maremma</title>
+    <link rel="stylesheet" href="vendor/leaflet.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="./"
+        ><span class="brandmark">b.</span> botanica<span class="beta">PRIVATA</span></a
+      >
+      <nav aria-label="Navigazione">
+        <button class="nav active" data-view="explore">Intorno a me</button
+        ><button class="nav" data-view="diary">Le mie uscite</button
+        ><button class="nav" data-view="method">Dati e metodo</button>
+      </nav>
+      <span class="region">◎ Maremma, Toscana</span>
+    </header>
+    <main>
+      <section id="explore" class="view">
+        <div class="title-row">
+          <div>
+            <p class="eyebrow">POSIZIONE · TERRITORIO · SUGGERIMENTI</p>
+            <h1>Cosa c’è di interessante intorno a me, oggi?</h1>
+            <p class="subtitle">
+              Scegli il raggio e leggi sentieri, natura, osservazioni botaniche e condizioni per i
+              funghi in un’unica mappa.
+            </p>
+          </div>
+          <button id="refresh-forecast" class="outline">↻ Aggiorna dati</button>
+        </div>
+        <div class="toolbar">
+          <label class="date-label"
+            >Quando
+            <select id="day"></select
+          ></label>
+          <fieldset class="radius-pills">
+            <legend>Raggio</legend>
+            <label><input type="radio" name="radius" value="5" /><span>5 km</span></label
+            ><label><input type="radio" name="radius" value="10" /><span>10 km</span></label
+            ><label><input type="radio" name="radius" value="25" checked /><span>25 km</span></label
+            ><label><input type="radio" name="radius" value="50" /><span>50 km</span></label>
+          </fieldset>
+          <button
+            id="set-area-center"
+            class="outline"
+            title="Usa il punto selezionato come centro del raggio"
+          >
+            Usa il punto come centro</button
+          ><button id="locate-top" class="outline">◎ La mia posizione</button
+          ><span class="model-tag">Dati correnti e osservazioni archiviate</span
+          ><select id="species" hidden aria-label="Profilo dettagliato">
+            <option value="porcini">Porcini</option>
+            <option value="aereus">Porcino nero · aereus</option>
+            <option value="reticulatus">Porcino estivo · reticulatus</option>
+            <option value="edulis">Porcino comune · edulis</option>
+            <option value="pinophilus">Porcino rosso · pinophilus</option>
+            <option value="cucchi">Cucchi / ovoli buoni</option>
+          </select>
+        </div>
+        <div class="activity-tabs" role="tablist" aria-label="Attività">
+          <button class="activity active" data-activity="overview" role="tab" aria-selected="true">
+            <b>✦</b><span>Panoramica<small>Oggi vicino a te</small></span></button
+          ><button class="activity" data-activity="trekking" role="tab" aria-selected="false">
+            <b>🥾</b><span>Trekking<small>Sentieri e itinerari</small></span></button
+          ><button class="activity" data-activity="funghi" role="tab" aria-selected="false">
+            <b>●</b><span>Funghi<small>Condizioni ambientali</small></span></button
+          ><button class="activity" data-activity="flora" role="tab" aria-selected="false">
+            <b>✿</b><span>Flora<small>Specie osservate</small></span></button
+          ><button class="activity" data-activity="natura" role="tab" aria-selected="false">
+            <b>◆</b><span>Natura<small>Aree protette</small></span>
+          </button>
+        </div>
+        <div id="around-state" role="status" class="status">
+          Interpreto il territorio intorno al centro scelto…
+        </div>
+        <div id="forecast-state" role="status" class="status" hidden>
+          Caricamento delle previsioni…
+        </div>
+        <div class="workspace">
+          <aside class="zone-panel">
+            <div class="list-heading">
+              <h2 id="panel-title">Oggi vicino a te</h2>
+              <span id="panel-meta">NEL RAGGIO</span>
+            </div>
+            <div id="activity-list"></div>
+            <div id="zones" hidden></div>
+            <p id="panel-note" class="footnote">
+              I suggerimenti incrociano distanza, meteo e dati territoriali. Seleziona un elemento
+              per individuarlo sulla mappa.
+            </p>
+          </aside>
+          <div class="map-wrap">
+            <div id="map" aria-label="Mappa interattiva di sentieri, natura, flora e boschi"></div>
+            <div class="map-caption">
+              MAREMMA <span id="map-context">Centro Maremma · raggio 25 km</span>
+            </div>
+            <div class="map-legend" id="map-legend">
+              Tratteggio: raggio selezionato <span>I livelli si attivano in base all’attività</span>
+            </div>
+          </div>
+        </div>
+        <section id="around-summary" class="around-summary" aria-live="polite"></section>
+        <section id="activity-panel" class="activity-panel" aria-live="polite"></section>
+        <div id="fungi-module" hidden>
+          <div class="fungi-toolbar">
+            <fieldset class="species-pills">
+              <legend class="sr-only">Tipo di fungo</legend>
+              <label class="pill"
+                ><input type="radio" name="main-species" value="porcini" checked /><span
+                  >Porcini</span
+                ></label
+              ><label class="pill"
+                ><input type="radio" name="main-species" value="cucchi" /><span
+                  >Cucchi / ovoli buoni</span
+                ></label
+              >
+            </fieldset>
+            <span>Indice sperimentale di condizioni favorevoli · 0–100%</span>
+          </div>
+          <section class="forecast-overview" aria-live="polite">
+            <div id="forecast-summary-body"></div>
+          </section>
+          <details class="card precise-controls">
+            <summary>Esplora un punto preciso</summary>
+            <div class="precise-actions">
+              <button id="locate" class="outline">◎ Usa la mia posizione</button
+              ><button id="refresh" class="outline">↻ Aggiorna punto</button>
+            </div>
+            <form id="coordinates" class="coordinates">
+              <label
+                >Latitudine<input
+                  id="lat"
+                  type="number"
+                  step="any"
+                  min="42.35"
+                  max="43.25"
+                  value="42.89"
+                  required /></label
+              ><label
+                >Longitudine<input
+                  id="lon"
+                  type="number"
+                  step="any"
+                  min="10.55"
+                  max="11.85"
+                  value="10.8"
+                  required /></label
+              ><button class="outline">Analizza coordinate</button>
+            </form>
+          </details>
+          <div class="point-toolbar">
+            <span id="point-label">Punto selezionato</span
+            ><button class="outline" id="copycoords">Copia coordinate</button
+            ><button class="outline" id="scan">Confronta 9 punti vicini</button>
+          </div>
+          <p id="geo-status" class="forecast-note" role="status"></p>
+          <div id="nearby" hidden></div>
+          <div id="status" role="status" class="status point-status">
+            Seleziona un punto per interrogare le fonti.
+          </div>
+          <section id="detail" class="detail" aria-live="polite">
+            <p>Caricamento delle fonti per il punto…</p>
+          </section>
+          <section class="card" id="evidence"><div id="evidence-content"></div></section>
+          <details class="card scenario">
+            <summary>Conosci questo bosco? Verifica uno scenario</summary>
+            <p>
+              Il dato cartografico può essere vecchio. Un’ipotesi manuale cambia la stima, ma non
+              diventa un dato verificato.
+            </p>
+            <label class="date-label"
+              >Alberi presenti
+              <select id="host">
+                <option value="auto">Usa la cartografia</option>
+                <option value="oak">Querce, lecci o sughere</option>
+                <option value="chestnut">Castagni</option>
+                <option value="beech">Faggi</option>
+                <option value="conifer">Conifere</option>
+                <option value="mixed">Bosco misto</option>
+                <option value="none">Assenza di alberi ospiti</option>
+              </select></label
+            >
+            <p id="scenario-status" class="forecast-note"></p>
+          </details>
+          <div class="caution">
+            <strong>Prima di partire</strong
+            ><span
+              >Una buona compatibilità non prova la presenza di funghi. La cartografia non certifica
+              accesso, proprietà o permessi. Fai controllare il raccolto dall’ispettorato
+              micologico; non raccogliere ovoli chiusi.</span
+            ><a
+              href="https://www.regione.toscana.it/-/raccolta-funghi-ecco-le-disposizioni"
+              target="_blank"
+              rel="noopener"
+              >Norme Toscana ↗</a
+            >
+          </div>
+        </div>
+      </section>
+      <section id="diary" class="view" hidden>
+        <p class="eyebrow">VERIFICHIAMO LE STIME SUL CAMPO</p>
+        <h1>Le mie uscite</h1>
+        <p class="subtitle">
+          Conserva coordinate, sforzo di ricerca ed esito. I tuoi dati restano in questo browser.
+        </p>
+        <div class="diary-layout">
+          <form id="logform" class="card">
+            <h2>Registra un’uscita</h2>
+            <label>Luogo<input id="logname" required maxlength="100" /></label>
+            <p id="logpoint" class="forecast-note"></p>
+            <label>Data<input id="logdate" type="date" required /></label
+            ><label>Specie<select id="logspecies"></select></label
+            ><label
+              >Esito<select id="logresult">
+                <option value="0">Nessun ritrovamento</option>
+                <option value="1">Qualche ritrovamento</option>
+                <option value="2">Molti ritrovamenti</option>
+              </select></label
+            ><label
+              >Minuti di ricerca<input
+                id="effort"
+                type="number"
+                min="1"
+                max="1440"
+                placeholder="Per confrontare uscite simili" /></label
+            ><label
+              >Note sul terreno e sugli alberi<textarea
+                id="lognotes"
+                maxlength="1500"
+                placeholder="Alberi, ombra, suolo umido/asciutto, tagli recenti…"
+              ></textarea></label
+            ><button class="primary">Salva uscita</button>
+            <p class="footnote">
+              Per le uscite di oggi conserva l’indice disponibile, non una previsione fatta prima
+              dell’uscita. Le registrazioni passate non ricevono indici retroattivi.
+            </p>
+            <p id="logstatus" role="status"></p>
+          </form>
+          <div>
+            <div class="list-heading">
+              <h2>Il tuo diario</h2>
+              <button id="export" class="outline">Esporta CSV</button
+              ><button id="backup" class="outline">Backup completo</button>
+            </div>
+            <div id="logs"></div>
+          </div>
+        </div>
+      </section>
+      <section id="method" class="view" hidden>
+        <p class="eyebrow">RICERCA E LIMITI DELLA PREVISIONE</p>
+        <h1>Più dettaglio, con prove visibili.</h1>
+        <p class="subtitle">
+          Il punto sulla mappa è preciso. La previsione biologica resta sperimentale e richiede
+          verifiche sul campo.
+        </p>
+        <div class="method-grid">
+          <article class="card">
+            <span class="step">01</span>
+            <h2>Specie e alberi ospiti</h2>
+            <p>
+              Porcino nero, estivo, comune e rosso sono trattati separatamente. Il gruppo “porcini”
+              mostra il profilo con indice più alto, non la somma delle probabilità. I cucchi usano
+              il profilo di Amanita caesarea.
+            </p>
+            <p>
+              Le preferenze qualitative derivano dalle schede di Forestas, ISPRA e Parco
+              dell’Appennino. Temperature e mesi usati nel calcolo sono intervalli di lavoro, non
+              limiti biologici universali.
+            </p>
+            <div id="species-guide"></div>
+            <a
+              href="https://www.sardegnaforeste.it/fungo/amanita-caesarea"
+              target="_blank"
+              rel="noopener"
+              >Forestas: habitat dell’ovolo ↗</a
+            ><br /><a
+              href="https://www.parcoappennino.it/campionato.mondiale.fungo/pdf/Brochure.funghi.mondiale.pdf"
+              target="_blank"
+              rel="noopener"
+              >Parco Appennino: le quattro specie di porcini, pagine 4–5 ↗</a
+            >
+          </article>
+          <article class="card">
+            <span class="step">02</span>
+            <h2>Che cosa entra nel calcolo</h2>
+            <p>
+              Acqua 35%: piogge nei 14 e 30 giorni precedenti, umidità del suolo a due profondità,
+              deficit rispetto all’evapotraspirazione e capacità di trattenere acqua. Temperatura
+              25%: suolo a 6 cm, oppure aria se il dato manca. Alberi ospiti 25%. Sequenza delle
+              piogge 10%. Rilievo 5%.
+            </p>
+            <p>
+              Esposizione, vento, umidità dell’aria e deficit di vapore modificano lo stress da
+              asciugatura. Gelo, siccità e fuori stagione applicano penalità. La quota entra nel
+              meteo corretto dal fornitore e nel rilievo, evitando di contarla come prova
+              indipendente.
+            </p>
+            <p>
+              Se la carta indica un’area non boscata, non calcoliamo l’indice automatico. Senza
+              alberi identificati, il punteggio non supera 69. I pesi sono euristici e non calibrati
+              su ritrovamenti locali.
+            </p>
+          </article>
+          <article class="card">
+            <span class="step">03</span>
+            <h2>Risoluzioni diverse</h2>
+            <p>
+              UCS 2019: poligoni a scala 1:10.000. Vegetazione: griglia 250 m, carta nominale
+              1:250.000. IFT: maglia 400 m con rilievi storici degli anni ’90. Pedologia: unità
+              cartografiche, non campioni nel punto. Rilievo Copernicus: 90 m.
+            </p>
+            <p>
+              Il meteo Open-Meteo è modellistico e ha una griglia dell’ordine dei chilometri,
+              diversa per variabile. L’app mostra la cella restituita dal servizio. Un campionamento
+              ogni 500 m non crea previsioni meteo a 500 m.
+            </p>
+            <p>
+              I 9 punti vicini condividono il meteo centrale, ma interrogano il proprio bosco, suolo
+              e rilievo. Per aggiornare anche il meteo di un vicino, selezionalo.
+            </p>
+            <a
+              href="https://www502.regione.toscana.it/geoscopio/servizi/wms/USO_E_COPERTURA_DEL_SUOLO.htm"
+              target="_blank"
+              rel="noopener"
+              >Regione Toscana: copertura e vegetazione ↗</a
+            ><br /><a
+              href="https://open-meteo.com/en/docs/elevation-api"
+              target="_blank"
+              rel="noopener"
+              >Copernicus DEM / Open-Meteo ↗</a
+            >
+          </article>
+          <article class="card">
+            <span class="step">04</span>
+            <h2>Che cosa ancora non sappiamo</h2>
+            <p>
+              Presenza effettiva del micelio, pH locale, lettiera, copertura e età attuali del
+              bosco, tagli, incendi recenti e pressione di raccolta possono cambiare il risultato.
+              Non inventiamo questi dati. Tessitura e sostanza organica disponibili sono mostrate
+              come contesto, senza pesi biologici non giustificati.
+            </p>
+            <p>
+              La ricerca sul micelio non equivale alla previsione della fruttificazione. L’effetto
+              dei fattori dipende da specie, bosco e stagione: un modello valido altrove non è
+              automaticamente valido in Maremma.
+            </p>
+            <p>
+              Occorrono osservazioni con data, posizione, esiti anche negativi e tempo di ricerca.
+              Le uscite non addestrano automaticamente il modello; prima serve una verifica
+              prospettica.
+            </p>
+            <a
+              href="https://www.frontiersin.org/journals/soil-science/articles/10.3389/fsoil.2023.1159793/full"
+              target="_blank"
+              rel="noopener"
+              >Studio su suolo, clima e micelio ↗</a
+            ><br /><a
+              href="https://nph.onlinelibrary.wiley.com/doi/10.1111/j.1469-8137.2009.02775.x"
+              target="_blank"
+              rel="noopener"
+              >Acqua e fruttificazione: studio sperimentale ↗</a
+            >
+          </article>
+          <article class="card">
+            <h2>Trekking e percorsi</h2>
+            <p>
+              Le linee arancioni arrivano dal livello ufficiale Itinerario Naturalistico Toscano
+              della Regione Toscana. I punti con lo scarponcino sono i centri cartografici delle
+              relazioni <em>route=hiking</em> presenti in OpenStreetMap, filtrate sulla distanza
+              reale dal centro scelto.
+            </p>
+            <p>
+              Il centro di una relazione serve a localizzarla, ma non rappresenta necessariamente
+              partenza, parcheggio o ingresso. Difficoltà e fondo compaiono solo quando sono
+              compilati nella fonte. Meteo favorevole indica comfort climatico al centro scelto; non
+              certifica sicurezza o percorribilità.
+            </p>
+            <a
+              href="https://www502.regione.toscana.it/geoscopio/servizi/wms/AREE_PROTETTE.htm"
+              target="_blank"
+              rel="noopener"
+              >Regione Toscana: itinerari e aree protette ↗</a
+            ><br /><a
+              href="https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_API_by_Example"
+              target="_blank"
+              rel="noopener"
+              >OpenStreetMap: interrogazioni Overpass ↗</a
+            >
+          </article>
+          <article class="card">
+            <h2>Flora osservata</h2>
+            <p>
+              La sezione Flora cerca record vegetali georeferenziati in GBIF negli ultimi cinque
+              anni, entro il riquadro del raggio, poi applica la distanza geodetica e conserva per
+              ogni specie il record più vicino. Mostra al massimo 35 specie tra i 300 record recenti
+              interrogati.
+            </p>
+            <p>
+              Data e incertezza delle coordinate restano visibili nel popup. Sono osservazioni
+              archiviate: non prevedono fioritura, abbondanza o presenza nel giorno selezionato. Lo
+              strato NatNet2 regionale aggiunge il contesto dei rilievi di specie e habitat
+              vegetali.
+            </p>
+            <a
+              href="https://techdocs.gbif.org/en/openapi/v1/occurrence"
+              target="_blank"
+              rel="noopener"
+              >GBIF: dati di presenza ↗</a
+            >
+          </article>
+          <article class="card">
+            <h2>Aree naturali e suggerimenti</h2>
+            <p>
+              La mappa delinea riserve naturali regionali e siti di interesse regionale/Natura 2000
+              con gli strati della Regione Toscana. I punti nominati arrivano da OpenStreetMap e
+              permettono di aprire il riferimento originale.
+            </p>
+            <p>
+              La Panoramica ordina i risultati per vicinanza e li unisce alle condizioni meteo del
+              giorno. Il punteggio trekking è una semplice euristica su pioggia, temperatura massima
+              e vento; non valuta dislivello, fondo, frane, incendi, chiusure o capacità
+              individuali.
+            </p>
+            <p>
+              Confini e nomi non autorizzano l’accesso: regolamenti, proprietà, orari e divieti
+              devono essere controllati presso l’ente gestore.
+            </p>
+          </article>
+          <article class="card">
+            <h2>Fonti del terreno e aggiornamenti</h2>
+            <p>
+              La pedologia regionale fornisce AWC (riserva idrica), tessitura e altre
+              caratteristiche dell’unità di suolo. Non sono sensori in tempo reale. Le età dei
+              diversi strati restano separate. Un conflitto tra carte viene segnalato.
+            </p>
+            <p>
+              Il meteo usa 30 giorni passati di dati modellistici e 7 giorni futuri. I dati
+              territoriali sono conservati in memoria al massimo 24 ore; il meteo un’ora. In caso di
+              errore, la fonte viene segnata come non disponibile.
+            </p>
+            <a
+              href="https://www502.regione.toscana.it/geoscopio/servizi/wms/PEDOLOGIA.htm"
+              target="_blank"
+              rel="noopener"
+              >Pedologia regionale ↗</a
+            ><br /><a href="https://open-meteo.com/en/docs" target="_blank" rel="noopener"
+              >Documentazione meteo ↗</a
+            >
+          </article>
+          <article class="card">
+            <h2>Raggio e aree delineate</h2>
+            <p>
+              Il centro può essere la posizione del dispositivo oppure qualunque punto scelto sulla
+              mappa. Il filtro 5/10/25/50 km usa la distanza geodetica tra il centro e ciascun punto
+              campione; non misura la distanza stradale.
+            </p>
+            <p>
+              Ogni area colorata è il poligono UCS 2019 che contiene il punto analizzato. Colore e
+              percentuale derivano dal meteo, dal suolo, dal rilievo e dall’habitat di quel punto.
+              Tutto il poligono eredita quindi il valore del campione: il confine è cartografico,
+              mentre il punteggio non ha la stessa precisione spaziale.
+            </p>
+            <p>
+              Nel popup sono separati riferimento locale, coordinate, habitat, pioggia, umidità e
+              temperatura del suolo, quota e pendenza. Il confronto “9 punti” serve per controllare
+              le variazioni a circa 500 m.
+            </p>
+          </article>
+          <article class="card">
+            <h2>Copertura territoriale della Maremma</h2>
+            <p>
+              Il catalogo stabile è ritagliato sul confine amministrativo della Provincia di
+              Grosseto e organizzato in otto settori: Colline Metallifere e Montioni; Bandite, Tirli
+              e costa nord; Maremma grossetana centrale; Uccellina e costa del Parco; Amiata e alta
+              valle dell’Albegna; Bassa Maremma e ripiani tufacei; Argentario e costa meridionale;
+              Arcipelago maremmano.
+            </p>
+            <p>
+              Contiene 426 relazioni escursionistiche e 28 aree naturali nominate. Sono oggetti
+              cartografici, non controlli di apertura. Le tracce regionali REI/CAI, ITN, le aree
+              protette e Natura 2000 vengono disegnate sopra la mappa e restano distinte dai punti
+              del catalogo.
+            </p>
+            <p>
+              I 21 campioni fungini distribuiscono l’analisi fra le principali fasce forestali. Ogni
+              campione riceve un indice soltanto se l’interrogazione UCS 2019 del punto restituisce
+              un bosco; altrimenti resta senza percentuale.
+            </p>
+            <a
+              href="https://www.regione.toscana.it/-/pit-con-valenza-di-piano-paesaggistico-adozione-d-c-r-n-58-del-02-luglio-2014"
+              target="_blank"
+              rel="noopener"
+              >Regione Toscana · ambiti di paesaggio ↗</a
+            ><br /><a
+              href="https://www502.regione.toscana.it/geoscopio/servizi/wms/SENTIERISTICA.htm"
+              target="_blank"
+              rel="noopener"
+              >Sentieristica REI/CAI ↗</a
+            >
+          </article>
+          <article class="card">
+            <h2>Fonti e data di controllo</h2>
+            <p>
+              <strong>Territorio:</strong> UCS 2019 1:10.000, vegetazione forestale 250 m, IFT
+              storico 400 m, pedologia regionale, aree protette e Natura 2000, sentieri REI
+              validati. <strong>Rilievo:</strong> Copernicus DEM GLO-90.
+              <strong>Meteo:</strong> Open-Meteo, 30 giorni passati e 7 futuri.
+              <strong>Flora:</strong> GBIF, record georeferenziati degli ultimi cinque anni.
+            </p>
+            <p>
+              <strong>Percorsi:</strong> inventario OpenStreetMap acquisito l’11 settembre 2026 e
+              ritagliato sul confine provinciale; itinerari del Parco della Maremma confrontati con
+              le schede ufficiali per codice, lunghezza e difficoltà. Aperture stagionali e obbligo
+              di guida vanno ricontrollati sul sito del gestore.
+            </p>
+            <p>
+              <strong>Previsione:</strong> indice euristico di compatibilità ambientale, non
+              probabilità calibrata di ritrovamento. Il diario raccoglie gli esiti positivi e
+              negativi necessari a una futura validazione locale.
+            </p>
+            <a href="https://www.regione.toscana.it/-/geoscopio" target="_blank" rel="noopener"
+              >GEOscopio ↗</a
+            ><br /><a
+              href="https://parco-maremma.it/itinerari/a-piedi/"
+              target="_blank"
+              rel="noopener"
+              >Parco della Maremma · itinerari ↗</a
+            ><br /><a
+              href="https://techdocs.gbif.org/en/openapi/v1/occurrence"
+              target="_blank"
+              rel="noopener"
+              >GBIF Occurrence API ↗</a
+            >
+          </article>
+          <article class="card">
+            <h2>Accesso riservato a due persone</h2>
+            <p>
+              La versione condivisa richiede l’accesso con uno dei due indirizzi autorizzati. Il
+              diario resta nel browser di ciascun dispositivo e si esporta con le informazioni della
+              stima.
+            </p>
+            <p>
+              Le fonti esterne ricevono le coordinate interrogate per restituire i dati. Le note
+              delle uscite non sono inviate a questi servizi.
+            </p>
+            <p>
+              L’app non identifica funghi e non autorizza la raccolta. Permessi, divieti, proprietà
+              e sicurezza dell’accesso vanno verificati separatamente.
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <span class="footer-brand">botanica / Maremma · privata</span
+      ><span>Regione Toscana · Open-Meteo · Copernicus DEM · GBIF</span
+      ><span>© OpenStreetMap contributors</span>
+    </footer>
+    <script src="vendor/leaflet.js"></script>
+    <script type="module" src="app.mjs"></script>
+  </body>
+</html>
