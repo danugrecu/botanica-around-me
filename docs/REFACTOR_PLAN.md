@@ -30,7 +30,96 @@ Ogni step è pensato come un commit isolato. La logica ecologica, il contratto p
 
 **COMMIT MESSAGE SUGGERITO**: `docs: document current architecture and sources`
 
-## 2. Rendere riproducibili gli input dei cataloghi
+## 2. Separate source, data, vendor and generated output
+
+Questa è la prima fase di codice. È esclusivamente strutturale: non spezza moduli, non cambia algoritmi, API, UI o responsabilità interne. I file applicativi vengono solo spostati/copiedi e i percorsi del build vengono aggiornati per conservare lo stesso runtime.
+
+### 2.1 Preparare i confini e la mappa di migrazione
+
+**OBIETTIVO**: creare i contenitori target e registrare una mappa uno-a-uno tra percorsi attuali e percorsi futuri, senza cambiare ancora gli import o il runtime.
+
+**FILE COINVOLTI**: nuovi percorsi `src/frontend/`, `data/catalog/`, `data/forecast/`, `vendor/leaflet/`, `public/` se necessario; `docs/TARGET_ARCHITECTURE.md`; eventuale nota di manifest nel build.
+
+**PERCORSI PRIMA / DOPO**:
+
+```text
+dist/app.mjs, around.mjs, ecology.mjs, forecast.mjs, weather.mjs,
+dist/model.mjs, display.mjs
+	-> src/frontend/
+
+dist/index.html, dist/style.css
+	-> src/frontend/ o public/ secondo il ruolo statico definito dal build
+
+dist/forecast-points.json
+	-> data/forecast/forecast-points.json
+
+dist/trekking-fallback.json
+	-> data/catalog/trekking-fallback.json
+
+dist/vendor/*
+	-> vendor/leaflet/*
+
+dist/server/* e dist/.openai/*
+	-> restano output generati sotto dist/
+```
+
+**RISCHIO**: basso; nessun comportamento viene eseguito in questa sotto-fase, ma una mappa incompleta può produrre spostamenti incoerenti.
+
+**TEST**: controllo dei percorsi esistenti, inventario file, `git diff --check`; nessun test applicativo richiesto oltre alla baseline documentata.
+
+**CRITERIO DI COMPLETAMENTO**: mapping completo e approvato; ogni file attualmente in `dist/` è classificato come source, data, vendor o output generato.
+
+**COMMIT MESSAGE SUGGERITO**: `build: define source data vendor output boundaries`
+
+### 2.2 Spostare sorgenti, dati statici e vendor
+
+**OBIETTIVO**: separare fisicamente il materiale modificabile dall'output, mantenendo invariato il contenuto dei file.
+
+**FILE COINVOLTI**: i moduli JS, `index.html`, `style.css`, i due JSON runtime e `dist/vendor/`; `.gitignore` solo se necessario per distinguere output da sorgenti.
+
+**PERCORSI PRIMA / DOPO**: applicare la mappa della sotto-fase 2.1. In particolare, nessun file di `server.py`, `hosted/backend.mjs`, `ecology.mjs`, `around.mjs`, `forecast.mjs` o del diario viene modificato internamente: cambiano solo la posizione fisica e, se indispensabile, i riferimenti relativi gestiti dal build.
+
+**RISCHIO**: medio; import relativi, URL degli asset, licenza Leaflet e file richiesti a runtime possono rompersi.
+
+**TEST**: confronto hash/contenuto prima e dopo; controllo che tutti gli import relativi restino risolvibili dopo la generazione; verifica presenza di JSON e vendor; `npm test` e `npm run build` quando disponibili.
+
+**CRITERIO DI COMPLETAMENTO**: nessuna perdita o modifica semantica dei file; i sorgenti non risiedono più in `dist/`; dati e vendor hanno percorsi distinti; il diff contiene solo spostamenti e aggiornamenti di percorso.
+
+**COMMIT MESSAGE SUGGERITO**: `build: move frontend data and vendor sources`
+
+### 2.3 Aggiornare il build per ricreare `dist/`
+
+**OBIETTIVO**: fare in modo che `dist/` venga prodotto da source, data e vendor e contenga solo asset runtime generati, incluso il Worker hosted.
+
+**FILE COINVOLTI**: `scripts/build-hosted.mjs`, `package.json` solo se occorre aggiungere un comando esplicito, `.gitignore`, eventuale manifest di build già previsto dal repository; nessuna modifica interna a `server.py` o `hosted/backend.mjs`.
+
+**PERCORSI PRIMA / DOPO**: il build legge `src/frontend/`, `data/` e `vendor/leaflet/` invece di usare `dist/` come sorgente; scrive gli asset frontend, i JSON e `dist/server/index.js` sotto `dist/`. `hosted/backend.mjs` resta sorgente backend e non viene incorporato come file modificabile dentro `dist/`.
+
+**RISCHIO**: alto; un errore nei percorsi può rompere sia il server locale, che continua a servire `dist/`, sia il Worker hosted.
+
+**TEST**: build pulito in una directory temporanea o dopo pulizia controllata di `dist/`; verifica elenco asset, import browser, manifest e dimensione del Worker; `npm test`; `npm run build`.
+
+**CRITERIO DI COMPLETAMENTO**: una build ripetibile ricrea tutti gli asset runtime necessari; `dist/` non è input del build, salvo eventuali directory temporanee esplicitamente escluse; local server e hosted ricevono gli stessi asset funzionali della baseline.
+
+**COMMIT MESSAGE SUGGERITO**: `build: generate dist from separated sources`
+
+### 2.4 Rimuovere gli artefatti sorgente residui da `dist/`
+
+**OBIETTIVO**: chiudere la fase strutturale dopo una build verificata, lasciando in `dist/` esclusivamente output generato.
+
+**FILE COINVOLTI**: residui sotto `dist/`, `.gitignore`, `scripts/build-hosted.mjs` se emerge un asset non classificato; documentazione del build se cambia il workflow.
+
+**PERCORSI PRIMA / DOPO**: ogni sorgente/data/vendor residuo sotto `dist/` deve avere il corrispondente in `src/`, `data/` o `vendor/`; restano solo output prodotti dal build, come `dist/server/index.js`, manifest copiati e asset runtime.
+
+**RISCHIO**: medio-alto; eliminare un file ancora richiesto da un percorso relativo può produrre regressioni runtime.
+
+**TEST**: `npm test`; `npm run build`; `python3 -m unittest discover -s tests`; smoke locale con `python3 server.py` se l'ambiente lo consente; controllo che `dist/` contenga esclusivamente output dichiarati.
+
+**CRITERIO DI COMPLETAMENTO**: la repository distingue fisicamente source code, static/runtime data, vendor e generated output; app locale e build hosted funzionano come prima; nessun algoritmo, API, UI o backend è stato modificato internamente.
+
+**COMMIT MESSAGE SUGGERITO**: `build: finish separation of generated output`
+
+## 3. Rendere riproducibili gli input dei cataloghi
 
 **OBIETTIVO**: rendere versionati e dichiarati gli input di `trekking-fallback.json` e `forecast-points.json`.
 
@@ -44,7 +133,7 @@ Ogni step è pensato come un commit isolato. La logica ecologica, il contratto p
 
 **COMMIT MESSAGE SUGGERITO**: `build: make territorial catalog inputs reproducible`
 
-## 3. Estrarre configurazione non sensibile
+## 4. Estrarre configurazione non sensibile
 
 **OBIETTIVO**: centralizzare limiti area, endpoint provider, TTL e costanti di acquisizione senza cambiare valori.
 
@@ -58,7 +147,7 @@ Ogni step è pensato come un commit isolato. La logica ecologica, il contratto p
 
 **COMMIT MESSAGE SUGGERITO**: `refactor: centralize non-secret runtime configuration`
 
-## 4. Consolidare le utility geografiche lato Python
+## 5. Consolidare le utility geografiche lato Python
 
 **OBIETTIVO**: eliminare duplicazioni locali di distanza, bounds e parsing/controllo geometrico nel backend Python senza cambiare risultati numerici.
 
@@ -72,7 +161,7 @@ Ogni step è pensato come un commit isolato. La logica ecologica, il contratto p
 
 **COMMIT MESSAGE SUGGERITO**: `refactor: centralize Python geography helpers`
 
-## 5. Formalizzare il contratto API
+## 6. Formalizzare il contratto API
 
 **OBIETTIVO**: descrivere schema di successo, fonti parziali e errori dei tre endpoint.
 
@@ -86,7 +175,7 @@ Ogni step è pensato come un commit isolato. La logica ecologica, il contratto p
 
 **COMMIT MESSAGE SUGGERITO**: `test: define shared backend API contracts`
 
-## 6. Portare i provider dietro adattatori separati
+## 7. Portare i provider dietro adattatori separati
 
 **OBIETTIVO**: separare provider Regione, Open-Meteo, Overpass e GBIF dai servizi che compongono le risposte.
 
@@ -100,7 +189,7 @@ Ogni step è pensato come un commit isolato. La logica ecologica, il contratto p
 
 **COMMIT MESSAGE SUGGERITO**: `refactor: isolate external data providers`
 
-## 7. Separare la persistenza del diario
+## 8. Separare la persistenza del diario
 
 **OBIETTIVO**: estrarre localStorage, migrazione v1, snapshot ed export da `app.mjs` mantenendo identiche chiavi e formati.
 
@@ -114,7 +203,7 @@ Ogni step è pensato come un commit isolato. La logica ecologica, il contratto p
 
 **COMMIT MESSAGE SUGGERITO**: `refactor: isolate local diary persistence`
 
-## 8. Separare controller UI e mappa
+## 9. Separare controller UI e mappa
 
 **OBIETTIVO**: ridurre `app.mjs` delegando layer Leaflet, marker e selezione geometrica a un modulo mappa.
 
@@ -128,7 +217,7 @@ Ogni step è pensato come un commit isolato. La logica ecologica, il contratto p
 
 **COMMIT MESSAGE SUGGERITO**: `refactor: isolate map controller from UI state`
 
-## 9. Separare Around Me e Forecast dai contratti browser
+## 10. Separare Around Me e Forecast dai contratti browser
 
 **OBIETTIVO**: fare in modo che Around Me e Forecast consumino client/servizi tipizzati o documentati, senza costruire URL nei componenti.
 
@@ -142,20 +231,6 @@ Ogni step è pensato come un commit isolato. La logica ecologica, il contratto p
 
 **COMMIT MESSAGE SUGGERITO**: `refactor: isolate frontend API clients`
 
-## 10. Rendere `dist/` solo output
-
-**OBIETTIVO**: spostare progressivamente sorgenti, dati e vendor nei confini target e aggiornare il build.
-
-**FILE COINVOLTI**: tutti i moduli attualmente in `dist/`, `scripts/build-hosted.mjs`, `package.json`, `vendor/`, `data/`, `public/`.
-
-**RISCHIO**: alto; percorsi relativi e deployment hosted possono rompersi.
-
-**TEST DA ESEGUIRE**: build pulito, verifica asset incorporati, avvio locale, smoke browser, suite completa, confronto dimensione/manifest.
-
-**CRITERIO DI COMPLETAMENTO**: nessun sorgente modificabile manualmente dentro `dist/`; output ricostruibile dagli input versionati.
-
-**COMMIT MESSAGE SUGGERITO**: `build: make dist generated output only`
-
 ## Regola di avanzamento
 
-Non accorpare gli step 6-10. Ogni commit deve lasciare test e build verificabili, documentare il rischio residuo e non includere nuove feature, nuove soglie, nuovi pesi o nuovi provider.
+Non accorpare i sotto-step 2.1-2.4: ciascuno deve lasciare test e build verificabili, documentare il rischio residuo e non includere nuove feature, nuove soglie, nuovi pesi o nuovi provider. Dopo la fase strutturale, mantenere separati anche gli step 3-9; ogni commit successivo deve essere piccolo e reversibile.
