@@ -16,20 +16,19 @@ Stato osservato: 11 settembre 2026, tag `prototype-10` (`c1e4dab`). Questo docum
 ├── README.md / ARCHITETTURA.md / CONSEGNA-DANU.md
 ├── package.json
 ├── server.py                         # backend locale Python
-├── hosted/backend.mjs                # backend Worker hosted
-├── dist/                             # UI, sorgenti JS, dati, vendor e output
-│   ├── index.html
-│   ├── style.css
-│   ├── app.mjs
-│   ├── around.mjs
-│   ├── ecology.mjs
-│   ├── forecast.mjs
-│   ├── weather.mjs
-│   ├── model.mjs
-│   ├── display.mjs
-│   ├── forecast-points.json
-│   ├── trekking-fallback.json
-│   └── vendor/leaflet.js, leaflet.css, images/, LEAFLET-LICENSE.txt
+├── src/frontend/                    # source frontend, organizzato per responsabilità attuali
+│   ├── index.html, styles/main.css
+│   ├── app/main.mjs
+│   ├── around/around.mjs
+│   ├── forecast/forecast.mjs
+│   ├── ecology/ecology.mjs, model.mjs
+│   ├── clients/weather.mjs
+│   └── shared/display.mjs
+├── src/backend/hosted/backend.mjs   # backend Worker hosted
+├── data/catalog/trekking-fallback.json
+├── data/forecast/forecast-points.json
+├── vendor/leaflet/                  # Leaflet e licenza
+├── dist/                            # esclusivamente output generato
 ├── scripts/
 │   ├── build-hosted.mjs
 │   ├── build_maremma_catalog.py
@@ -44,13 +43,13 @@ Stato osservato: 11 settembre 2026, tag `prototype-10` (`c1e4dab`). Questo docum
     └── maremma-territoriale-2026-09-11.md
 ```
 
-`dist/server/index.js` e `dist/.openai/hosting.json` sono output ignorati da Git quando vengono generati. Nell'istantanea analizzata il primo era presente; il file `.openai/hosting.json` richiesto dal build non è presente nel worktree visibile.
+`dist/` è ignorata da Git e viene ricreata dal build degli asset. `dist/server/index.js` e `dist/.openai/hosting.json` sono output del build hosted; il file `.openai/hosting.json` richiesto come input non è presente nel worktree visibile.
 
 ## Entry point
 
 - Locale: `python3 server.py`, che serve `dist/` su `http://localhost:4173` e gestisce `/api/*` nello stesso handler.
-- Browser: `dist/index.html`, che carica prima `vendor/leaflet.js` e poi `app.mjs` come modulo.
-- Hosted: `scripts/build-hosted.mjs` legge `hosted/backend.mjs`, incorpora gli asset di `dist/` e scrive un Worker in `dist/server/index.js`; il Worker esporta `fetch()`.
+- Browser: `dist/index.html`, prodotto da `src/frontend/index.html`, che carica prima `vendor/leaflet.js` e poi `app.mjs` come modulo.
+- Hosted: `scripts/build-hosted.mjs` legge `src/backend/hosted/backend.mjs`, incorpora gli asset generati in `dist/` e scrive un Worker in `dist/server/index.js`; il Worker esporta `fetch()`.
 - Test: `npm test` esegue i tre test Node e poi `unittest` Python.
 
 ## Caricamento frontend
@@ -65,31 +64,31 @@ Stato osservato: 11 settembre 2026, tag `prototype-10` (`c1e4dab`). Questo docum
 
 ## Moduli frontend
 
-### `dist/app.mjs`
+### `src/frontend/app/main.mjs`
 Controller principale e responsabilità miste: stato globale, navigazione, mappa, geolocalizzazione, richieste puntuali, confronto 3x3, rendering dell'analisi, diario/localStorage, export CSV/JSON e registrazione opzionale WebMCP. Contiene anche helper replicati per escape HTML, distanza e formattazione.
 
-### `dist/around.mjs`
+### `src/frontend/around/around.mjs`
 Vista Around Me. Gestisce centro/raggio, richiesta `/api/around`, cache locale di 30 minuti, fusione con catalogo statico, layer trekking/flora/natura, rendering dei suggerimenti e testi sui limiti. Contiene una propria implementazione di distanza e sanitizzazione.
 
-### `dist/forecast.mjs`
+### `src/frontend/forecast/forecast.mjs`
 Carica i 21 punti, mantiene stato/cache locale per punto fino a un'ora, esegue richieste concorrenti a `/api/environment`, calcola graduatorie e finestre consecutive tramite `summarizeForecast()` e aggiorna marcatori/aree.
 
-### `dist/ecology.mjs`
+### `src/frontend/ecology/ecology.mjs`
 Business logic ecologica pura rispetto a HTTP/UI. Definisce profili, etichette vegetazionali, `habitat()`, aggregazioni meteo e `predict()`. Il gruppo `porcini` prende il massimo dei quattro profili. Non modificare soglie o pesi durante il riordino.
 
-### `dist/model.mjs`
+### `src/frontend/ecology/model.mjs`
 Catalogo delle 21 zone, funzione `today()`, `level()` e un estimatore v1 `estimate()`. Il percorso principale usa `zones`, `today` e `level`; `estimate()` appare come compatibilità/legacy e non è importato dai moduli applicativi correnti.
 
-### `dist/weather.mjs`
+### `src/frontend/clients/weather.mjs`
 Client browser Open-Meteo, punteggio meteo per l'uscita e riduzione della risposta a sette giorni. Duplica l'algoritmo `outdoorScore()` del backend.
 
-### `dist/display.mjs`
+### `src/frontend/shared/display.mjs`
 Unico helper di presentazione per percentuali.
 
-### `dist/index.html` e `dist/style.css`
+### `src/frontend/index.html` e `src/frontend/styles/main.css`
 HTML, contenuti metodologici, link alle fonti, controlli e stile responsive. L'HTML contiene anche documentazione utente e riferimenti alla ricerca, quindi dati, contenuto editoriale e UI sono accoppiati.
 
-### `dist/vendor/`
+### `vendor/leaflet/`
 Leaflet 1.9.4 distribuito localmente con licenza e immagini.
 
 ## Dipendenze tra moduli JS
@@ -143,7 +142,7 @@ Il centro può derivare dal punto selezionato, GPS o default; il raggio è 5/10/
 
 ## Forecast
 
-`forecast-points.json` contiene 21 punti selezionati e verificati dallo script. `forecast.mjs` usa tre worker concorrenti nel browser, cache `localStorage` di un'ora e un nuovo tentativo manuale. Per ogni punto usa l'intero `environment`, calcola il giorno corrente e la finestra consecutiva con indice almeno 70. Punti senza copertura valida non ottengono indice.
+`data/forecast/forecast-points.json` contiene 21 punti selezionati e verificati dallo script. `forecast.mjs` usa tre worker concorrenti nel browser, cache `localStorage` di un'ora e un nuovo tentativo manuale. Per ogni punto usa l'intero `environment`, calcola il giorno corrente e la finestra consecutiva con indice almeno 70. Punti senza copertura valida non ottengono indice.
 
 ## Confronto 3x3
 
@@ -157,17 +156,18 @@ Around Me usa chiavi per centro/raggio (`botanica-around-v3:*`); il forecast usa
 
 ## Cataloghi JSON
 
-- `forecast-points.json`: 21 punti, con coordinate verificate e data di controllo.
-- `trekking-fallback.json`: catalogo statico di 426 itinerari e 28 luoghi secondo documentazione e file presenti, più metadati di fonte/verifica.
-- `vendor/`: dipendenza Leaflet e licenza.
+- `data/forecast/forecast-points.json`: 21 punti, con coordinate verificate e data di controllo.
+- `data/catalog/trekking-fallback.json`: catalogo statico di 426 itinerari e 28 luoghi secondo documentazione e file presenti, più metadati di fonte/verifica.
+- `vendor/leaflet/`: dipendenza Leaflet e licenza.
 
-I JSON sono dentro `dist/`, quindi dati runtime e output/sorgente sono mescolati.
+I JSON sorgente sono fuori da `dist/`; il build li pubblica in `dist/` con gli stessi URL runtime.
 
 ## Script
 
-- `build-hosted.mjs`: legge gli asset sotto `dist/`, esclude `server`, incorpora base64 e backend e legge `.openai/hosting.json`; scrive il Worker generato.
-- `build_maremma_catalog.py`: legge tre file esterni in `/private/tmp`, ritaglia su un confine, arricchisce con fonti Parco e scrive `dist/trekking-fallback.json`.
-- `select_forecast_points.py`: importa il backend locale, interroga la cartografia per campioni vicini e scrive `dist/forecast-points.json` con data hard-coded `2026-09-11`.
+- `build-assets.mjs`: ricrea `dist/` dagli asset sotto `src/frontend/`, `data/` e `vendor/`, senza richiedere configurazione hosted.
+- `build-hosted.mjs`: genera gli asset, legge `src/backend/hosted/backend.mjs`, incorpora base64 e legge `.openai/hosting.json`; scrive il Worker generato.
+- `build_maremma_catalog.py`: legge tre file esterni in `/private/tmp`, ritaglia su un confine, arricchisce con fonti Parco e scrive `data/catalog/trekking-fallback.json`.
+- `select_forecast_points.py`: importa il backend locale, interroga la cartografia per campioni vicini e scrive `data/forecast/forecast-points.json` con data hard-coded `2026-09-11`.
 
 I due script Python di catalogo non sono riproducibili dalla sola repository: input, percorso Unix e data di acquisizione non sono inclusi/configurabili.
 
@@ -184,7 +184,7 @@ Non esistono contract test che confrontino direttamente le risposte di Python e 
 
 ### Locale
 
-`python3 server.py` serve solo su loopback `127.0.0.1:4173`, con `dist/` come directory statica. Accetta API solo con Host/origin locali, usa cache in memoria, timeout upstream di 25 secondi e non persiste coordinate.
+`python server.py` serve solo su loopback `127.0.0.1:4173`, con `dist/` come directory statica. Gli asset vengono preparati da `npm run build:assets`; il server accetta API solo con Host/origin locali, usa cache in memoria, timeout upstream di 25 secondi e non persiste coordinate.
 
 ### Hosted
 
@@ -195,7 +195,7 @@ Non esistono contract test che confrontino direttamente le risposte di Python e 
 - **HIGH**: `server.py` e `hosted/backend.mjs` duplicano tutta la logica dei provider e non hanno contract test condivisi; possono divergere senza rilevazione.
 - **HIGH**: il build dipende da un manifest `.openai/hosting.json` non presente nel worktree osservato e da Node/npm installati; il deployment non è riproducibile dalla repository sola.
 - **HIGH**: il catalogo statico e i forecast point sono dati generati dentro `dist/` senza input versionati; la provenance è parziale e la rigenerazione è ambientale.
-- **MEDIUM**: `dist/` contiene sorgente, output generato, dati e vendor; questo rende ambiguo il punto di modifica e può causare editing dell'artefatto generato.
+- **MEDIUM**: la separazione fisica è stata applicata, ma il build deve restare il solo modo per ricreare `dist/` e i test dipendono dall'output generato.
 - **MEDIUM**: `app.mjs` concentra UI, mappa, networking, rendering, diario e WebMCP; responsabilità miste e alta superficie di regressione.
 - **MEDIUM**: URL/provider sono distribuiti tra backend, frontend, HTML, `model.mjs`, script e ricerca; non esiste un registro operativo unico.
 - **MEDIUM**: distanza, `outdoorScore` ed escape HTML sono replicati tra moduli/runtime; le copie possono produrre risultati differenti.

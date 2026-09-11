@@ -1,6 +1,6 @@
 # Architettura di Botanica Around Me
 
-Questa guida indica dove si trova ogni funzione e dove intervenire. Il frontend non usa framework: i file dentro `dist/` sono moduli JavaScript caricati direttamente dal browser. Il build genera soltanto il Worker della versione ospitata.
+Questa guida indica dove si trova ogni funzione e dove intervenire. Il frontend non usa framework: i sorgenti sono sotto `src/frontend/` e il browser carica gli asset generati in `dist/`. Il build degli asset è separato dal build del Worker hosted.
 
 ## Flusso completo
 
@@ -28,24 +28,24 @@ click sulla mappa / GPS / zona campione
                                               +--> meteo per l'uscita
 ```
 
-In locale le API sono implementate da `server.py`. Sul sito privato hanno lo stesso contratto ma sono implementate da `hosted/backend.mjs`. `scripts/build-hosted.mjs` copia il backend nel file generato `dist/server/index.js`.
+In locale le API sono implementate da `server.py`. Sul sito privato hanno lo stesso contratto ma sono implementate da `src/backend/hosted/backend.mjs`. `scripts/build-hosted.mjs` copia il backend nel file generato `dist/server/index.js`.
 
 ## Mappa dei file
 
 | File | Responsabilita' | Modificarlo quando |
 | --- | --- | --- |
-| `dist/index.html` | Struttura delle schermate e testi statici | si aggiunge una scheda, un comando o una sezione |
-| `dist/style.css` | Colori, layout responsive, mappa, schede e stampa | cambia l'aspetto grafico |
-| `dist/app.mjs` | Controller, mappa Leaflet, punto selezionato, confronto 3x3 e diario | cambia il comportamento generale della UI o della mappa |
-| `dist/forecast.mjs` | Graduatoria dei boschi e finestra migliore nei sette giorni | cambia il confronto automatico tra zone |
-| `dist/ecology.mjs` | Habitat, profili delle specie, fattori e indice sperimentale | cambiano soglie, pesi o specie fungine |
-| `dist/around.mjs` | Centro/raggio, trekking, flora, natura e meteo dell'uscita | cambia la vista "Intorno a me" |
-| `dist/weather.mjs` | Richiesta Open-Meteo dal browser e indice meteo per uscire | cambiano i parametri meteo comuni |
-| `dist/model.mjs` | Zone pilota e compatibilita' con il modello precedente | si rinomina o descrive una macrozona |
-| `dist/forecast-points.json` | 21 punti campione usati nelle previsioni | si aggiunge o corregge un bosco campione |
-| `dist/trekking-fallback.json` | Catalogo stabile di trekking e luoghi naturali | si aggiorna il censimento territoriale |
+| `src/frontend/index.html` | Struttura delle schermate e testi statici | si aggiunge una scheda, un comando o una sezione |
+| `src/frontend/styles/main.css` | Colori, layout responsive, mappa, schede e stampa | cambia l'aspetto grafico |
+| `src/frontend/app/main.mjs` | Controller, mappa Leaflet, punto selezionato, confronto 3x3 e diario | cambia il comportamento generale della UI o della mappa |
+| `src/frontend/forecast/forecast.mjs` | Graduatoria dei boschi e finestra migliore nei sette giorni | cambia il confronto automatico tra zone |
+| `src/frontend/ecology/ecology.mjs` | Habitat, profili delle specie, fattori e indice sperimentale | cambiano soglie, pesi o specie fungine |
+| `src/frontend/around/around.mjs` | Centro/raggio, trekking, flora, natura e meteo dell'uscita | cambia la vista "Intorno a me" |
+| `src/frontend/clients/weather.mjs` | Richiesta Open-Meteo dal browser e indice meteo per uscire | cambiano i parametri meteo comuni |
+| `src/frontend/ecology/model.mjs` | Zone pilota e compatibilita' con il modello precedente | si rinomina o descrive una macrozona |
+| `data/forecast/forecast-points.json` | 21 punti campione usati nelle previsioni | si aggiunge o corregge un bosco campione |
+| `data/catalog/trekking-fallback.json` | Catalogo stabile di trekking e luoghi naturali | si aggiorna il censimento territoriale |
 | `server.py` | Server locale, cache e adattatori delle fonti | cambia un'API o una fonte nella versione locale |
-| `hosted/backend.mjs` | Stesse API nella versione ospitata | la stessa modifica deve arrivare al sito privato |
+| `src/backend/hosted/backend.mjs` | Stesse API nella versione ospitata | la stessa modifica deve arrivare al sito privato |
 | `scripts/build-hosted.mjs` | Genera il Worker ospitato | cambia il formato richiesto dall'hosting |
 | `research/` | Fonti, metodo e limiti dichiarati | si aggiunge evidenza scientifica o territoriale |
 | `tests/` | Controlli del modello, parsing e API | cambia una regola con effetto osservabile |
@@ -74,7 +74,7 @@ Ogni sorgente puo' restituire `status: "unavailable"`. L'interfaccia deve contin
 
 ## Come nasce una percentuale dei funghi
 
-`dist/ecology.mjs` contiene il modello dettagliato. La funzione `predict(env, date, species, override)`:
+`src/frontend/ecology/ecology.mjs` contiene il modello dettagliato. La funzione `predict(env, date, species, override)`:
 
 1. verifica che il punto ricada in copertura boscata;
 2. identifica il tipo di bosco e l'albero ospite piu' plausibile;
@@ -88,9 +88,9 @@ Il gruppo `porcini` calcola separatamente aereus, reticulatus, edulis e pinophil
 
 Per aggiungere una specie:
 
-1. aggiungere il profilo in `profiles` dentro `dist/ecology.mjs`;
+1. aggiungere il profilo in `profiles` dentro `src/frontend/ecology/ecology.mjs`;
 2. definire temperatura, mesi e compatibilita' con gli ospiti;
-3. aggiungere l'opzione nel selettore di `dist/index.html`;
+3. aggiungere l'opzione nel selettore di `src/frontend/index.html`;
 4. estendere i test con casi favorevoli, sfavorevoli e dati mancanti;
 5. documentare fonte e motivazione in `research/metodo-v2.md`.
 
@@ -102,9 +102,9 @@ I tre tipi di geometria hanno significati diversi:
 - le aree protette e Natura 2000 usano gli strati WMS regionali, visibili come superfici;
 - molti percorsi e record botanici arrivano come punto centrale o osservazione. In assenza di una geometria completa verificata, l'app mostra un marcatore e non inventa un tracciato.
 
-`dist/app.mjs` disegna il poligono forestale e i punti di previsione. `dist/around.mjs` gestisce gli strati trekking, flora e natura, mantiene gli indici dei marcatori e centra la mappa quando l'utente sceglie un risultato.
+`src/frontend/app/main.mjs` disegna il poligono forestale e i punti di previsione. `src/frontend/around/around.mjs` gestisce gli strati trekking, flora e natura, mantiene gli indici dei marcatori e centra la mappa quando l'utente sceglie un risultato.
 
-Per aggiungere un bosco previsto, inserire in `dist/forecast-points.json` un oggetto con almeno:
+Per aggiungere un bosco previsto, inserire in `data/forecast/forecast-points.json` un oggetto con almeno:
 
 ```json
 {
@@ -129,11 +129,11 @@ Le fonti live sono adattatori separati:
 - `overpass_context()` / `overpassContext()` per trekking e aree OSM;
 - `flora_context()` / `floraContext()` per GBIF.
 
-I nomi con underscore sono in `server.py`; i corrispondenti camelCase sono in `hosted/backend.mjs`. Una modifica al contratto va riportata in entrambi e verificata prima del build.
+I nomi con underscore sono in `server.py`; i corrispondenti camelCase sono in `src/backend/hosted/backend.mjs`. Una modifica al contratto va riportata in entrambi e verificata prima del build.
 
 ## Diario e privacy
 
-Il diario e' gestito in `dist/app.mjs` e salvato in `localStorage` nel browser. Esportazione CSV e backup JSON avvengono sul dispositivo. Il server non riceve le note. Le richieste territoriali e meteo inviano ai rispettivi fornitori le coordinate interrogate.
+Il diario e' gestito in `src/frontend/app/main.mjs` e salvato in `localStorage` nel browser. Esportazione CSV e backup JSON avvengono sul dispositivo. Il server non riceve le note. Le richieste territoriali e meteo inviano ai rispettivi fornitori le coordinate interrogate.
 
 ## Sviluppo locale
 
@@ -159,7 +159,7 @@ Generazione del Worker ospitato:
 npm run build
 ```
 
-`dist/server/index.js` e' generato e ignorato da Git. Correggere sempre `hosted/backend.mjs`, poi rigenerare.
+`dist/server/index.js` e' generato e ignorato da Git. Correggere sempre `src/backend/hosted/backend.mjs`, poi rigenerare.
 
 ## Regole per modifiche sicure
 

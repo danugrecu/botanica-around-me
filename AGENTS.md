@@ -13,8 +13,9 @@
 - Non spostare o rinominare file senza aggiornare build, deployment, test e documentazione nello stesso commit.
 - Non modificare silenziosamente gli algoritmi ecologici.
 - Non cambiare soglie, pesi, profili, moltiplicatori o limiti dell'indice senza test dedicati e documentazione della motivazione.
-- Preservare i contratti JSON tra frontend, `server.py` e `hosted/backend.mjs`.
+- Preservare i contratti JSON tra frontend, `server.py` e `src/backend/hosted/backend.mjs`.
 - Trattare `dist/server/index.js` come output generato: modificare la sorgente e rigenerare, mai correggere l'artefatto a mano.
+- Trattare l'intera directory `dist/` come output generato: modificare i file sotto `src/`, `data/` o `vendor/`, poi eseguire il build degli asset.
 
 ## Dati e provider
 

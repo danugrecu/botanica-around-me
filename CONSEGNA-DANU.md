@@ -27,9 +27,12 @@ e aprire `http://localhost:4174/`.
 ## Struttura
 
 - `ARCHITETTURA.md`: guida tecnica, flusso dei dati e punti di modifica.
-- `dist/`: interfaccia, mappa, modello e cataloghi territoriali.
+- `src/frontend/`: interfaccia, mappa, modello e client frontend.
+- `data/`: cataloghi runtime di trekking e punti forecast.
+- `vendor/leaflet/`: Leaflet locale e licenza.
+- `dist/`: output generato dal build.
 - `server.py`: server locale e collegamento alle fonti territoriali e meteo.
-- `hosted/backend.mjs`: backend compatibile con il sito ospitato.
+- `src/backend/hosted/backend.mjs`: backend compatibile con il sito ospitato.
 - `scripts/`: generazione del backend ospitato e dei cataloghi.
 - `tests/`: controlli automatici del modello e delle fonti.
 - `research/`: metodo e inventario territoriale con fonti.
@@ -49,8 +52,8 @@ Il pacchetto non contiene credenziali né autorizzazioni del sito pubblicato. L'
 ## Da dove partire
 
 1. Leggere `ARCHITETTURA.md`.
-2. Avviare `python3 server.py` e usare l'app in locale.
-3. Dopo una modifica eseguire `npm test` e `npm run build`.
-4. Non modificare `dist/server/index.js`: viene ricreato dal comando di build.
+2. Avviare `npm start` oppure `python server.py` dopo `npm run build:assets`.
+3. Dopo una modifica eseguire `npm test` e `npm run build` quando il manifest hosted è disponibile.
+4. Non modificare file dentro `dist/`: vengono ricreati dal build.
 
 Questa versione riordina e documenta il codice senza modificare le funzioni dell'app o il modello di previsione.

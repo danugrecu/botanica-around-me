@@ -2,7 +2,7 @@
  * Esperienza "Intorno a me": centro, raggio, trekking, flora, natura e meteo per uscire.
  * Riceve dal controller solo mappa e stato corrente; carica i dati da /api/around.
  */
-import { fetchBrowserWeather, sevenDayWeather } from './weather.mjs';
+import { fetchBrowserWeather, sevenDayWeather } from '../clients/weather.mjs';
 
 const esc = (s) =>
   String(s ?? '').replace(

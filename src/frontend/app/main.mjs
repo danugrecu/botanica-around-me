@@ -5,11 +5,11 @@
  * Le previsioni automatiche sono in forecast.mjs; trekking, flora e natura in around.mjs;
  * il calcolo micologico in ecology.mjs. Vedi ARCHITETTURA.md prima di modificare il flusso.
  */
-import { percent } from './display.mjs';
-import { setupForecast } from './forecast.mjs';
-import { setupAround } from './around.mjs';
-import { fetchBrowserWeather } from './weather.mjs';
-import { zones, today, level, profiles, habitat, predict, num, hourlySummary } from './ecology.mjs';
+import { percent } from '../shared/display.mjs';
+import { setupForecast } from '../forecast/forecast.mjs';
+import { setupAround } from '../around/around.mjs';
+import { fetchBrowserWeather } from '../clients/weather.mjs';
+import { zones, today, level, profiles, habitat, predict, num, hourlySummary } from '../ecology/ecology.mjs';
 const $ = (s) => document.querySelector(s),
   esc = (s) =>
     String(s ?? '').replace(

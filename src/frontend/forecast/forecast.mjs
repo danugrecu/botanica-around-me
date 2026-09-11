@@ -2,9 +2,9 @@
  * Graduatoria automatica dei boschi campione per specie e giorno.
  * Carica forecast-points.json, ottiene l'ambiente di ogni punto e usa ecology.predict().
  */
-import { percent } from './display.mjs';
-import { zones, predict, today, level } from './ecology.mjs';
-import { fetchBrowserWeather } from './weather.mjs';
+import { percent } from '../shared/display.mjs';
+import { zones, predict, today, level } from '../ecology/ecology.mjs';
+import { fetchBrowserWeather } from '../clients/weather.mjs';
 export function summarizeForecast(env, days, species, date) {
   const daily = days.map((day) => ({ day, ...predict(env, day, species) }));
   const usable = daily.filter((r) => r.score !== null);

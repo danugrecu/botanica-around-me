@@ -1,8 +1,8 @@
 # Botanica Around Me — Maremma privata
 
-Avvio locale: `python3 server.py`, quindi aprire http://localhost:4173. La versione condivisa usa un Worker HTTP equivalente ed è protetta dalla lista di due account autorizzati. Entrambe richiedono internet per le fonti esterne.
+Avvio locale: `npm start`, quindi aprire http://localhost:4173. La versione condivisa usa un Worker HTTP equivalente ed è protetta dalla lista di due account autorizzati. Entrambe richiedono internet per le fonti esterne.
 
-Per orientarsi nel codice, partire da [`ARCHITETTURA.md`](ARCHITETTURA.md): descrive il flusso completo, il ruolo di ogni file e i punti da modificare per aggiungere dati o funzioni senza rompere le parti esistenti.
+Per orientarsi nel codice, partire da [`ARCHITETTURA.md`](ARCHITETTURA.md) e [`docs/CURRENT_ARCHITECTURE.md`](docs/CURRENT_ARCHITECTURE.md). Il codice frontend è sotto `src/frontend/`, il backend hosted sotto `src/backend/hosted/`, i dati runtime sotto `data/`, Leaflet sotto `vendor/` e `dist/` contiene esclusivamente output generato.
 
 ## Funzioni
 
@@ -28,6 +28,17 @@ Per orientarsi nel codice, partire da [`ARCHITETTURA.md`](ARCHITETTURA.md): desc
 Non è un modello predittivo validato. Pesi e soglie sono scelte euristiche, documentate nell'app e in `research/metodo-v2.md`. Dati con provenienza/risoluzione diversa non vengono presentati come prove indipendenti di accuratezza. Punti GPS a cinque decimali non implicano una previsione di fruttificazione a pochi metri. Il meteo resta dell'ordine dei chilometri. Non vengono inventati pH, micelio, gestione recente, incendi, lettiera o osservazioni di campo. Le osservazioni botaniche sono record storici e non garantiscono presenza o fioritura attuale; i dati escursionistici e i confini non certificano accessibilità o sicurezza.
 
 Le sorgenti territoriali hanno età diverse. Errori/mancanze sono restituiti per fonte; i dati mancanti non diventano zeri. Cache soltanto in memoria (meteo 1 h, geografia 24 h). Nessuna memorizzazione server delle uscite. Le coordinate interrogate vengono inviate ai fornitori, non le note personali.
+
+## Sviluppo e verifica
+
+- Prerequisiti: Python 3 e Node.js/npm per test e build.
+- `npm start`: genera gli asset locali e avvia `server.py` su http://localhost:4173.
+- `npm run build:assets`: genera gli asset runtime in `dist/` senza richiedere `.openai/hosting.json`.
+- `npm test`: rigenera gli asset e avvia test Node e Python.
+- `npm run build`: genera asset e Worker hosted; richiede `.openai/hosting.json`.
+- `python server.py`: avvio diretto del server usando l'output già presente in `dist/`.
+
+Per le fonti consultare [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md); per la sequenza dei refactoring [`docs/REFACTOR_PLAN.md`](docs/REFACTOR_PLAN.md).
 
 ## Verifica
 

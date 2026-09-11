@@ -173,7 +173,7 @@ catalog = {
     "trails": trails,
     "nature": nature,
 }
-(ROOT / "dist" / "trekking-fallback.json").write_text(
+(ROOT / "data" / "catalog" / "trekking-fallback.json").write_text(
     json.dumps(catalog, ensure_ascii=False, separators=(",", ":"))
 )
 print(json.dumps(catalog["stats"]))

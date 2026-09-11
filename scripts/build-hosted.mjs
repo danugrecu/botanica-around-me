@@ -1,5 +1,6 @@
 import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
 import path from 'node:path';
+import { buildAssets } from './build-assets.mjs';
 const root = path.resolve(import.meta.dirname, '..');
 const assets = {};
 const types = {
@@ -25,7 +26,9 @@ async function collect(dir, prefix = '') {
   }
 }
 await collect(path.join(root, 'dist'));
-const code = await readFile(path.join(root, 'hosted/backend.mjs'), 'utf8');
+const manifest = JSON.parse(await readFile(path.join(root, '.openai/hosting.json'), 'utf8'));
+await buildAssets();
+const code = await readFile(path.join(root, 'src/backend/hosted/backend.mjs'), 'utf8');
 await mkdir(path.join(root, 'dist/server'), { recursive: true });
 await mkdir(path.join(root, 'dist/.openai'), { recursive: true });
 await writeFile(
@@ -35,6 +38,5 @@ await writeFile(
     JSON.stringify(assets) +
     ';\nexport default {fetch(request){return handle(request,assets);}};\n',
 );
-const manifest = JSON.parse(await readFile(path.join(root, '.openai/hosting.json'), 'utf8'));
 await writeFile(path.join(root, 'dist/.openai/hosting.json'), JSON.stringify(manifest) + '\n');
 console.log(`Hosted Worker ready: ${Object.keys(assets).length} assets; local UI unchanged.`);

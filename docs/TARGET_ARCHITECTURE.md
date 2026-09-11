@@ -19,22 +19,16 @@ Questa è una proposta di riordino incrementale. Non modifica ancora file applic
 .
 ├── src/                              # SOURCE CODE
 │   ├── frontend/
-│   │   ├── ui/                       # viste, rendering, accessibilità
-│   │   ├── map/                      # Leaflet, layer, marker, geometrie
-│   │   ├── around/                   # Around Me e filtri raggio
-│   │   ├── forecast/                 # forecast punti e ranking
-│   │   ├── ecology/                  # profili, habitat, predict; logica pura
-│   │   ├── diary/                    # localStorage, CSV, backup JSON
-│   │   ├── clients/                  # client HTTP browser e fallback meteo
-│   │   └── shared/                   # date, distanza, escape, tipi/contratti
-│   ├── backend/
-│   │   ├── api/                      # routing e validazione endpoint
-│   │   ├── services/                 # environment, land, around
-│   │   ├── providers/                # Toscana, Open-Meteo, Overpass, GBIF
-│   │   ├── geography/                 # GML, poligoni, distanza, bounds
-│   │   ├── config/                   # limiti, TTL, endpoint non sensibili
-│   │   └── local-python/              # implementazione compatibile Python
-│   └── hosted/                       # implementazione Worker compatibile
+│   │   ├── index.html
+│   │   ├── styles/main.css
+│   │   ├── app/main.mjs              # bootstrap, controller, mappa e diario attuali
+│   │   ├── around/around.mjs
+│   │   ├── forecast/forecast.mjs
+│   │   ├── ecology/ecology.mjs, model.mjs
+│   │   ├── clients/weather.mjs
+│   │   └── shared/display.mjs
+│   └── backend/
+│       └── hosted/backend.mjs         # Worker compatibile; server.py resta entry point locale
 ├── data/                             # DATA
 │   ├── catalog/                      # cataloghi statici versionati
 │   ├── forecast/                     # punti campione e metadata
@@ -49,11 +43,10 @@ Questa è una proposta di riordino incrementale. Non modifica ancora file applic
 ├── scripts/                          # SCRIPTS riproducibili
 ├── vendor/                           # THIRD PARTY / VENDOR
 │   └── leaflet/
-├── public/                           # asset sorgente statici, se distinto da src
 └── dist/                             # GENERATED OUTPUT ONLY
 ```
 
-La suddivisione è un obiettivo, non un invito a spostare subito i file. Ogni spostamento futuro deve conservare URL relativi, asset, contratti e test.
+La struttura sopra è la prima separazione fisica applicata. `app/main.mjs` conserva ancora mappa, orchestrazione e diario; estrarli è lavoro successivo e non fa parte della separazione source/data/vendor/output. Non viene introdotta `public/`: HTML e CSS sono sorgenti frontend e vengono copiati nella radice dell'output.
 
 ## Confini di responsabilità
 

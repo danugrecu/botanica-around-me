@@ -1,6 +1,6 @@
-# Migration Map: Step 2.1
+# Migration Map: Step 2.1 / 2.2 / 2.3
 
-Stato: preparazione בלבד. Questo documento non sposta file, non modifica import e non cambia il runtime.
+Stato: separazione source/data/vendor applicata; build e documentazione aggiornati. La decomposizione per feature e l'organizzazione interna dei backend restano fasi successive.
 
 ## Obiettivo
 
@@ -47,7 +47,7 @@ dist/
 └── weather.mjs                     SOURCE
 ```
 
-La scansione effettiva ha trovato 15 file. `dist/.openai/` non è presente nella working tree osservata, ma il build lo crea e vi scrive il manifest hosted; viene quindi mappato come output generato.
+La scansione effettiva ha trovato 16 file. `dist/.openai/` non è presente nella working tree osservata, ma il build lo crea e vi scrive il manifest hosted; viene quindi mappato come output generato.
 
 ## Struttura target immediata
 
@@ -100,15 +100,15 @@ L'elenco dentro `dist/` rappresenta l'output runtime che il server locale deve c
 
 | Current path | Categoria | Target path | Note |
 |---|---|---|---|
-| `dist/app.mjs` | SOURCE | `src/frontend/app.mjs` | Controller frontend; contenuto invariato nello Step 2.2. Il build lo ricopierà in `dist/app.mjs`. |
-| `dist/around.mjs` | SOURCE | `src/frontend/around.mjs` | Modulo Around Me; nessuna separazione interna in questa fase. |
-| `dist/display.mjs` | SOURCE | `src/frontend/display.mjs` | Helper di presentazione. |
-| `dist/ecology.mjs` | SOURCE | `src/frontend/ecology.mjs` | Logica ecologica; solo spostamento fisico, nessuna modifica. |
-| `dist/forecast.mjs` | SOURCE | `src/frontend/forecast.mjs` | Modulo Forecast; nessuna modifica comportamentale. |
+| `dist/app.mjs` | SOURCE | `src/frontend/app/main.mjs` | Controller frontend; contenuto invariato nello Step 2.2. Il build lo ricopierà in `dist/app.mjs`. |
+| `dist/around.mjs` | SOURCE | `src/frontend/around/around.mjs` | Modulo Around Me; nessuna separazione interna in questa fase. |
+| `dist/display.mjs` | SOURCE | `src/frontend/shared/display.mjs` | Helper di presentazione. |
+| `dist/ecology.mjs` | SOURCE | `src/frontend/ecology/ecology.mjs` | Logica ecologica; solo spostamento fisico, nessuna modifica. |
+| `dist/forecast.mjs` | SOURCE | `src/frontend/forecast/forecast.mjs` | Modulo Forecast; nessuna modifica comportamentale. |
 | `dist/index.html` | SOURCE | `src/frontend/index.html` | Entry point statico; scelta esplicita per evitare `public/`. |
-| `dist/model.mjs` | SOURCE | `src/frontend/model.mjs` | Catalogo zone e compatibilità v1 conservati come sono. |
-| `dist/style.css` | SOURCE | `src/frontend/style.css` | Asset statico frontend; resta accanto all'entry point. |
-| `dist/weather.mjs` | SOURCE | `src/frontend/weather.mjs` | Client browser e fallback meteo. |
+| `dist/model.mjs` | SOURCE | `src/frontend/ecology/model.mjs` | Catalogo zone e compatibilità v1 conservati come sono. |
+| `dist/style.css` | SOURCE | `src/frontend/styles/main.css` | Asset statico frontend; resta accanto all'entry point. |
+| `dist/weather.mjs` | SOURCE | `src/frontend/clients/weather.mjs` | Client browser e fallback meteo. |
 | `dist/forecast-points.json` | DATA | `data/forecast/forecast-points.json` | Dati runtime; il build li pubblicherà come `dist/forecast-points.json`. |
 | `dist/trekking-fallback.json` | DATA | `data/catalog/trekking-fallback.json` | Catalogo runtime; il build lo pubblicherà come `dist/trekking-fallback.json`. |
 | `dist/vendor/leaflet.js` | VENDOR | `vendor/leaflet/leaflet.js` | Leaflet distribuito localmente. |
@@ -116,7 +116,7 @@ L'elenco dentro `dist/` rappresenta l'output runtime che il server locale deve c
 | `dist/vendor/images/layers.png` | VENDOR | `vendor/leaflet/images/layers.png` | Immagine richiesta da Leaflet CSS. |
 | `dist/vendor/images/layers-2x.png` | VENDOR | `vendor/leaflet/images/layers-2x.png` | Variante ad alta densità. |
 | `dist/vendor/LEAFLET-LICENSE.txt` | VENDOR | `vendor/leaflet/LEAFLET-LICENSE.txt` | Licenza da conservare insieme alla dipendenza. |
-| `dist/server/index.js` | GENERATED OUTPUT | `dist/server/index.js` | Worker generato da `hosted/backend.mjs`; non viene spostato in `src/`. |
+| `dist/server/index.js` | GENERATED OUTPUT | `dist/server/index.js` | Worker generato da `src/backend/hosted/backend.mjs`; non viene spostato in `src/`. |
 | `dist/.openai/hosting.json` | GENERATED OUTPUT | `dist/.openai/hosting.json` | Non presente ora, ma creato da `scripts/build-hosted.mjs` copiando `.openai/hosting.json`. |
 | `.openai/hosting.json` | BUILD INPUT / deployment config | `.openai/hosting.json` | Non è dentro `dist/`; resta input di build fuori dall'output. Non presente nella working tree osservata. |
 
@@ -126,10 +126,10 @@ L'elenco dentro `dist/` rappresenta l'output runtime che il server locale deve c
 
 Gli import relativi interni sono presenti in:
 
-- `dist/app.mjs`: `./display.mjs`, `./forecast.mjs`, `./around.mjs`, `./weather.mjs`, `./ecology.mjs`.
-- `dist/around.mjs`: `./weather.mjs`.
-- `dist/ecology.mjs`: `./model.mjs`.
-- `dist/forecast.mjs`: `./display.mjs`, `./ecology.mjs`, `./weather.mjs`.
+- `src/frontend/app/main.mjs`: `../shared/display.mjs`, `../forecast/forecast.mjs`, `../around/around.mjs`, `../clients/weather.mjs`, `../ecology/ecology.mjs`.
+- `src/frontend/around/around.mjs`: `../clients/weather.mjs`.
+- `src/frontend/ecology/ecology.mjs`: `./model.mjs`.
+- `src/frontend/forecast/forecast.mjs`: `../shared/display.mjs`, `../ecology/ecology.mjs`, `../clients/weather.mjs`.
 
 Dopo lo spostamento nello stesso `src/frontend/`, questi import possono restare invariati. Il build deve copiare l'intero albero nella radice di `dist/`, così gli import runtime restano identici.
 
@@ -240,6 +240,6 @@ Questa checklist sarà eseguita nello Step 2.2/2.3, non ora:
 - [ ] Nessun contenuto di `server.py`, `hosted/backend.mjs`, `ecology.mjs` o altri algoritmi è cambiato semanticamente.
 - [ ] `git diff --check` è pulito e il diff mostra solo spostamenti, build/path updates e documentazione.
 
-## Stato Step 2.1
+## Stato della migrazione strutturale
 
-Completato come analisi e mapping documentale. Non sono stati spostati file, modificati import, aggiornati script di build o modificati file applicativi.
+Step 2.1 completato come analisi. Step 2.2 e 2.3 applicati: i file sono nei percorsi target, gli import frontend sono stati aggiornati per la nuova struttura, `build-assets.mjs` ricrea `dist/` e `build-hosted.mjs` usa gli asset generati e la sorgente hosted sotto `src/backend/hosted/`. Step 2.4 è verificabile dopo un build Node riuscito; non sono stati modificati algoritmi, contratti API o dataset.

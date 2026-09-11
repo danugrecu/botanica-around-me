@@ -41,7 +41,7 @@ Fonti cartografiche:
 
 ## Modello implementato
 
-`dist/ecology.mjs` è la fonte esatta delle formule. Tutte le soglie seguenti sono scelte di prototipo, non risultati dimostrati dalla letteratura.
+`src/frontend/ecology/ecology.mjs` è la fonte esatta delle formule. Tutte le soglie seguenti sono scelte di prototipo, non risultati dimostrati dalla letteratura.
 
 - 35% idratazione: pioggia antecedente su 14/30 giorni combinata con umidità modellata in superficie e in profondità. Se manca il suolo, usa il solo segnale di pioggia e segnala la mancanza. AWC modula la penalità per P−ET0 negativo, non viene sommata come prova indipendente.
 - 25% temperatura: media 3 giorni del suolo a 6 cm, con ripiego sulla media 5 giorni dell'aria. Intervalli di lavoro distinti per specie, con penalità graduali fuori intervallo.

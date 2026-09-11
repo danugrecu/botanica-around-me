@@ -65,6 +65,6 @@ def select(z):
 with ThreadPoolExecutor(max_workers=3) as p:
     results = list(p.map(select, zones))
 print(json.dumps(results, ensure_ascii=False))
-Path(__file__).resolve().parents[1].joinpath("dist/forecast-points.json").write_text(
+Path(__file__).resolve().parents[1].joinpath("data/forecast/forecast-points.json").write_text(
     json.dumps(results, ensure_ascii=False)
 )

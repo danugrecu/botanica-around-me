@@ -75,9 +75,9 @@ dist/server/* e dist/.openai/*
 
 **OBIETTIVO**: separare fisicamente il materiale modificabile dall'output, mantenendo invariato il contenuto dei file.
 
-**FILE COINVOLTI**: i moduli JS, `index.html`, `style.css`, i due JSON runtime e `dist/vendor/`; `.gitignore` solo se necessario per distinguere output da sorgenti.
+**FILE COINVOLTI**: `src/frontend/`, `data/`, `vendor/leaflet/`, `.gitignore`; i file applicativi sono stati spostati senza modifica semantica.
 
-**PERCORSI PRIMA / DOPO**: applicare la mappa della sotto-fase 2.1. In particolare, nessun file di `server.py`, `hosted/backend.mjs`, `ecology.mjs`, `around.mjs`, `forecast.mjs` o del diario viene modificato internamente: cambiano solo la posizione fisica e, se indispensabile, i riferimenti relativi gestiti dal build.
+**PERCORSI PRIMA / DOPO**: applicare la mappa di `docs/MIGRATION_MAP.md`. In particolare, nessun algoritmo, API, backend locale, ecology, Around Me, Forecast o diario è stato modificato internamente: cambiano solo posizione fisica e import relativi necessari alla nuova collocazione.
 
 **RISCHIO**: medio; import relativi, URL degli asset, licenza Leaflet e file richiesti a runtime possono rompersi.
 
@@ -91,9 +91,9 @@ dist/server/* e dist/.openai/*
 
 **OBIETTIVO**: fare in modo che `dist/` venga prodotto da source, data e vendor e contenga solo asset runtime generati, incluso il Worker hosted.
 
-**FILE COINVOLTI**: `scripts/build-hosted.mjs`, `package.json` solo se occorre aggiungere un comando esplicito, `.gitignore`, eventuale manifest di build già previsto dal repository; nessuna modifica interna a `server.py` o `hosted/backend.mjs`.
+**FILE COINVOLTI**: `scripts/build-assets.mjs`, `scripts/build-hosted.mjs`, `package.json`, `.gitignore`, eventuale manifest di build; nessuna modifica interna a `server.py` o `src/backend/hosted/backend.mjs`.
 
-**PERCORSI PRIMA / DOPO**: il build legge `src/frontend/`, `data/` e `vendor/leaflet/` invece di usare `dist/` come sorgente; scrive gli asset frontend, i JSON e `dist/server/index.js` sotto `dist/`. `hosted/backend.mjs` resta sorgente backend e non viene incorporato come file modificabile dentro `dist/`.
+**PERCORSI PRIMA / DOPO**: `build-assets.mjs` legge `src/frontend/`, `data/` e `vendor/leaflet/` invece di usare `dist/` come sorgente; scrive gli asset frontend, i JSON e `dist/server/index.js` sotto `dist/`. `src/backend/hosted/backend.mjs` resta sorgente backend e non viene incorporato come file modificabile dentro `dist/`.
 
 **RISCHIO**: alto; un errore nei percorsi può rompere sia il server locale, che continua a servire `dist/`, sia il Worker hosted.
 
@@ -107,7 +107,7 @@ dist/server/* e dist/.openai/*
 
 **OBIETTIVO**: chiudere la fase strutturale dopo una build verificata, lasciando in `dist/` esclusivamente output generato.
 
-**FILE COINVOLTI**: residui sotto `dist/`, `.gitignore`, `scripts/build-hosted.mjs` se emerge un asset non classificato; documentazione del build se cambia il workflow.
+**FILE COINVOLTI**: residui sotto `dist/`, `.gitignore`, `scripts/build-assets.mjs` e `scripts/build-hosted.mjs` se emerge un asset non classificato; documentazione del build se cambia il workflow.
 
 **PERCORSI PRIMA / DOPO**: ogni sorgente/data/vendor residuo sotto `dist/` deve avere il corrispondente in `src/`, `data/` o `vendor/`; restano solo output prodotti dal build, come `dist/server/index.js`, manifest copiati e asset runtime.
 
@@ -123,7 +123,7 @@ dist/server/* e dist/.openai/*
 
 **OBIETTIVO**: rendere versionati e dichiarati gli input di `trekking-fallback.json` e `forecast-points.json`.
 
-**FILE COINVOLTI**: `scripts/build_maremma_catalog.py`, `scripts/select_forecast_points.py`, nuovi file sotto `data/` o metadata documentati, `.gitignore` se necessario.
+**FILE COINVOLTI**: `scripts/build_maremma_catalog.py`, `scripts/select_forecast_points.py`, file sotto `data/` o metadata documentati, `.gitignore` se necessario.
 
 **RISCHIO**: medio; un cambiamento di input può alterare dati visualizzati, non algoritmi.
 
@@ -137,7 +137,7 @@ dist/server/* e dist/.openai/*
 
 **OBIETTIVO**: centralizzare limiti area, endpoint provider, TTL e costanti di acquisizione senza cambiare valori.
 
-**FILE COINVOLTI**: `server.py`, `hosted/backend.mjs`, `dist/weather.mjs`, `dist/app.mjs`, nuovo modulo/config documentato.
+**FILE COINVOLTI**: `server.py`, `src/backend/hosted/backend.mjs`, `src/frontend/clients/weather.mjs`, `src/frontend/app/main.mjs`, nuovo modulo/config documentato.
 
 **RISCHIO**: medio; URL, arrotondamenti e TTL possono cambiare accidentalmente.
 
@@ -165,7 +165,7 @@ dist/server/* e dist/.openai/*
 
 **OBIETTIVO**: descrivere schema di successo, fonti parziali e errori dei tre endpoint.
 
-**FILE COINVOLTI**: `docs/`, `server.py`, `hosted/backend.mjs`, nuovi fixture/test contract.
+**FILE COINVOLTI**: `docs/`, `server.py`, `src/backend/hosted/backend.mjs`, nuovi fixture/test contract.
 
 **RISCHIO**: medio; rendere esplicite differenze oggi tollerate può far emergere incompatibilità.
 
@@ -179,7 +179,7 @@ dist/server/* e dist/.openai/*
 
 **OBIETTIVO**: separare provider Regione, Open-Meteo, Overpass e GBIF dai servizi che compongono le risposte.
 
-**FILE COINVOLTI**: `server.py`, `hosted/backend.mjs`, nuovi moduli provider/services, test fixture.
+**FILE COINVOLTI**: `server.py`, `src/backend/hosted/backend.mjs`, nuovi moduli provider/services, test fixture.
 
 **RISCHIO**: alto; è il primo spostamento strutturale di codice con rete e fallback.
 
@@ -193,7 +193,7 @@ dist/server/* e dist/.openai/*
 
 **OBIETTIVO**: estrarre localStorage, migrazione v1, snapshot ed export da `app.mjs` mantenendo identiche chiavi e formati.
 
-**FILE COINVOLTI**: `dist/app.mjs`, nuovo modulo diary, test browser/unitari.
+**FILE COINVOLTI**: `src/frontend/app/main.mjs`, nuovo modulo diary, test browser/unitari.
 
 **RISCHIO**: medio; perdita o alterazione di dati locali esistenti.
 
@@ -207,7 +207,7 @@ dist/server/* e dist/.openai/*
 
 **OBIETTIVO**: ridurre `app.mjs` delegando layer Leaflet, marker e selezione geometrica a un modulo mappa.
 
-**FILE COINVOLTI**: `dist/app.mjs`, `dist/around.mjs`, nuovo modulo map, test smoke/browser.
+**FILE COINVOLTI**: `src/frontend/app/main.mjs`, `src/frontend/around/around.mjs`, nuovo modulo map, test smoke/browser.
 
 **RISCHIO**: alto; interazioni, popup e layer possono rompersi senza errori statici.
 
@@ -221,7 +221,7 @@ dist/server/* e dist/.openai/*
 
 **OBIETTIVO**: fare in modo che Around Me e Forecast consumino client/servizi tipizzati o documentati, senza costruire URL nei componenti.
 
-**FILE COINVOLTI**: `dist/around.mjs`, `dist/forecast.mjs`, `dist/weather.mjs`, nuovi client/shared.
+**FILE COINVOLTI**: `src/frontend/around/around.mjs`, `src/frontend/forecast/forecast.mjs`, `src/frontend/clients/weather.mjs`, nuovi client/shared.
 
 **RISCHIO**: medio; cache e fallback possono cambiare comportamento.
 
