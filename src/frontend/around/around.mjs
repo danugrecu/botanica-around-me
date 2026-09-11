@@ -3,6 +3,7 @@
  * Riceve dal controller solo mappa e stato corrente; carica i dati da /api/around.
  */
 import { fetchBrowserWeather, sevenDayWeather } from '../clients/weather.mjs';
+import { distanceKm } from '../shared/geo.mjs';
 
 const esc = (s) =>
   String(s ?? '').replace(
@@ -19,14 +20,6 @@ const fmtDate = (s) =>
     : 'data non disponibile';
 const distanceLabel = (n) =>
   Number.isFinite(n) ? `${n < 10 ? n.toFixed(1) : Math.round(n)} km` : 'distanza n.d.';
-const distanceKm = (a, b) => {
-  const p = Math.PI / 180,
-    dLat = (b.lat - a.lat) * p,
-    dLon = (b.lon - a.lon) * p,
-    x =
-      Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * p) * Math.cos(b.lat * p) * Math.sin(dLon / 2) ** 2;
-  return 6371 * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
-};
 const weatherText = (w) => {
   if (!w) return 'Dati meteo non disponibili';
   const rain = w.precipitation ?? 0,

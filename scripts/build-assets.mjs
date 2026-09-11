@@ -11,6 +11,7 @@ const assets = [
   ['src/frontend/app/main.mjs', 'app/main.mjs'],
   ['src/frontend/around/around.mjs', 'around/around.mjs'],
   ['src/frontend/clients/weather.mjs', 'clients/weather.mjs'],
+  ['src/frontend/diary/diary.mjs', 'diary/diary.mjs'],
   ['src/frontend/ecology/ecology.mjs', 'ecology/ecology.mjs'],
   ['src/frontend/ecology/model.mjs', 'ecology/model.mjs'],
   ['src/frontend/forecast/forecast.mjs', 'forecast/forecast.mjs'],

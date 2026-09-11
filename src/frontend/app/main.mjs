@@ -6,9 +6,17 @@
  * il calcolo micologico in ecology.mjs. Vedi ARCHITETTURA.md prima di modificare il flusso.
  */
 import { percent } from '../shared/display.mjs';
+import { distanceKm, directionFrom, insideMaremma } from '../shared/geo.mjs';
 import { setupForecast } from '../forecast/forecast.mjs';
 import { setupAround } from '../around/around.mjs';
 import { fetchBrowserWeather } from '../clients/weather.mjs';
+import {
+  backupDiaryJson,
+  exportDiaryCsv,
+  normalizeDiaryEntry,
+  readDiaryEntries,
+  writeDiaryEntries,
+} from '../diary/diary.mjs';
 import { zones, today, level, profiles, habitat, predict, num, hourlySummary } from '../ecology/ecology.mjs';
 const $ = (s) => document.querySelector(s),
   esc = (s) =>
@@ -45,29 +53,8 @@ let aroundCenter = { lat: 42.82, lon: 11.13, name: 'Centro Maremma' },
   radiusKm = 25,
   forecastUI = null,
   aroundUI = null;
-const limits = { south: 42.3, north: 43.25, west: 10.45, east: 11.9 },
-  insideMaremma = (lat, lon) =>
-    lat >= limits.south && lat <= limits.north && lon >= limits.west && lon <= limits.east;
 const classFor = (n) => (n == null ? '' : n >= 70 ? 'good' : n >= 45 ? 'mid' : 'low');
-const distanceKm = (a, b) => {
-  const p = Math.PI / 180,
-    dLat = (b.lat - a.lat) * p,
-    dLon = (b.lon - a.lon) * p,
-    x =
-      Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * p) * Math.cos(b.lat * p) * Math.sin(dLon / 2) ** 2;
-  return 6371 * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
-};
-const direction = (a, b) => {
-  const p = Math.PI / 180,
-    y = Math.sin((b.lon - a.lon) * p) * Math.cos(b.lat * p),
-    x =
-      Math.cos(a.lat * p) * Math.sin(b.lat * p) -
-      Math.sin(a.lat * p) * Math.cos(b.lat * p) * Math.cos((b.lon - a.lon) * p),
-    d = ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
-  return ['nord', 'nord-est', 'est', 'sud-est', 'sud', 'sud-ovest', 'ovest', 'nord-ovest'][
-    Math.round(d / 45) % 8
-  ];
-};
+const direction = directionFrom;
 $('#day').innerHTML = days
   .map(
     (d, i) =>
@@ -533,11 +520,7 @@ try {
 } catch {
   $('#map').textContent = 'Mappa non disponibile: inserisci le coordinate.';
 }
-let logs = [];
-try {
-  const saved = JSON.parse(localStorage.getItem('fungapp-logs-v1') || '[]');
-  if (Array.isArray(saved)) logs = saved.filter((l) => l && /^\d{4}-\d{2}-\d{2}$/.test(l.date));
-} catch {}
+let logs = readDiaryEntries();
 let logPoint = { ...point };
 function stageLog() {
   logPoint = { ...point };
@@ -588,9 +571,9 @@ $('#logform').onsubmit = (e) => {
         }
       : null,
   };
+  const normalizedEntry = normalizeDiaryEntry(entry, logPoint);
   try {
-    localStorage.setItem('fungapp-logs-v1', JSON.stringify([...logs, entry]));
-    logs.push(entry);
+    logs = writeDiaryEntries([...logs, normalizedEntry]);
     $('#lognotes').value = '';
     $('#logstatus').textContent = 'Uscita salvata solo in questo browser.';
     renderLogs();
@@ -608,7 +591,7 @@ function download(data, type, name) {
 }
 $('#backup').onclick = () =>
   download(
-    JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), logs }, null, 2),
+    backupDiaryJson(logs),
     'application/json',
     'fungapp-diario-' + today() + '.json',
   );
@@ -617,44 +600,8 @@ $('#export').onclick = () => {
     $('#logs').innerHTML = '<div class="empty">Nessuna uscita da esportare.</div>';
     return;
   }
-  const quote = (v) =>
-    '"' +
-    String(v ?? '')
-      .replace(/^[\s]*[=+@-]/, "'$&")
-      .replace(/"/g, '""') +
-    '"';
-  const rows = [
-    [
-      'luogo',
-      'latitudine',
-      'longitudine',
-      'data',
-      'specie',
-      'esito',
-      'minuti',
-      'note',
-      'indice',
-      'modello',
-      'scenario',
-      'salvato_il',
-    ],
-    ...logs.map((l) => [
-      l.name ?? zones.find((z) => z.id === l.zone)?.name,
-      l.lat,
-      l.lon,
-      l.date,
-      l.species,
-      l.result,
-      l.effort,
-      l.notes,
-      l.score,
-      l.model,
-      l.scenario,
-      l.savedAt,
-    ]),
-  ];
   download(
-    '\uFEFF' + rows.map((r) => r.map(quote).join(';')).join('\r\n'),
+    exportDiaryCsv(logs),
     'text/csv;charset=utf-8',
     'fungapp-uscite-' + today() + '.csv',
   );
