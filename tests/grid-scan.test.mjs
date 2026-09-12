@@ -28,4 +28,7 @@ assert.equal(points.filter((p) => p.name === 'Centro').length, 1);
 assert.equal(points.filter((p) => p.name.toLowerCase().includes('nord')).length, 3);
 assert.equal(points.filter((p) => p.name.toLowerCase().includes('sud')).length, 3);
 assert.equal(points.filter((p) => p.name.toLowerCase().includes('ovest')).length, 3);
+const highLatitudePoints = buildGridScanPoints({ lat: 89.9, lon: 11.115 }, 500);
+assert.equal(highLatitudePoints.length, 9);
+assert.ok(highLatitudePoints.every((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon)));
 console.log('PASS: grid scan generation is stable.');

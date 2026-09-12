@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "npm run build:assets && python server.py",
-    "test": "npm run build:assets && node --test tests/*.test.mjs && python -m unittest discover -s tests",
+    "test": "npm run build:assets && node --test tests/build-assets.test.mjs && npm run build:assets && node --test tests/botanica-api.test.mjs tests/diary.test.mjs tests/ecology.test.mjs tests/forecast.test.mjs tests/grid-scan.test.mjs tests/weather.test.mjs && python -m unittest discover -s tests",
     "build:assets": "node scripts/build-assets.mjs",
     "build": "node scripts/build-hosted.mjs"
   }

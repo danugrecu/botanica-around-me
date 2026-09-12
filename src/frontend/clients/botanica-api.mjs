@@ -36,17 +36,26 @@ export function normalizeCoords(lat, lon) {
 }
 
 export async function getEnvironment(latOrPoint, lon, init = {}) {
-  const { lat, lon: lng } = typeof latOrPoint === 'object' ? latOrPoint : normalizeCoords(latOrPoint, lon);
+  const { lat, lon: lng } =
+    typeof latOrPoint === 'object'
+      ? normalizeCoords(latOrPoint?.lat, latOrPoint?.lon)
+      : normalizeCoords(latOrPoint, lon);
   return getJson(`/api/environment?lat=${lat}&lon=${lng}`, init);
 }
 
 export async function getLand(latOrPoint, lon, init = {}) {
-  const { lat, lon: lng } = typeof latOrPoint === 'object' ? latOrPoint : normalizeCoords(latOrPoint, lon);
+  const { lat, lon: lng } =
+    typeof latOrPoint === 'object'
+      ? normalizeCoords(latOrPoint?.lat, latOrPoint?.lon)
+      : normalizeCoords(latOrPoint, lon);
   return getJson(`/api/land?lat=${lat}&lon=${lng}`, init);
 }
 
 export async function getAroundContext(latOrPoint, lon, radius, init = {}) {
-  const point = typeof latOrPoint === 'object' ? latOrPoint : normalizeCoords(latOrPoint, lon);
+  const point =
+    typeof latOrPoint === 'object'
+      ? normalizeCoords(latOrPoint?.lat, latOrPoint?.lon)
+      : normalizeCoords(latOrPoint, lon);
   const radiusKm = Number(radius ?? 25);
   return getJson(`/api/around?lat=${point.lat}&lon=${point.lon}&radius=${radiusKm}`, init);
 }

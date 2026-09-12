@@ -109,7 +109,7 @@ Genera `dist/` a partire da `src/`, `data/` e `vendor/`.
 Esegue:
 
 - `npm run build:assets`
-- test JavaScript con `node --test tests/*.test.mjs`
+- test del clean build con `node --test tests/build-assets.test.mjs`, poi test JavaScript runtime con l'elenco esplicito delle suite
 - test Python con `python -m unittest discover -s tests`
 
 ### `npm start`
