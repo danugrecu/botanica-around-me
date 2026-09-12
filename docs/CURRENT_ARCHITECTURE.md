@@ -13,29 +13,38 @@ Stato osservato: 11 settembre 2026, tag `prototype-10` (`c1e4dab`). Questo docum
 
 ```text
 .
-├── README.md / ARCHITETTURA.md / CONSEGNA-DANU.md
+├── README.md / ARCHITETTURA.md / CONSEGNA-DANU.md / AGENTS.md
 ├── package.json
 ├── server.py                         # backend locale Python
-├── src/frontend/                    # source frontend, organizzato per responsabilità attuali
+├── src/frontend/                    # source frontend modulare
 │   ├── index.html, styles/main.css
-│   ├── app/main.mjs
-│   ├── around/around.mjs
-│   ├── forecast/forecast.mjs
+│   ├── app/main.mjs                 # orchestratore applicativo
+│   ├── map/map.mjs                 # Leaflet setup e layer management
+│   ├── analysis/grid-scan.mjs      # 3x3 grid scan
+│   ├── around/around.mjs           # Around Me
+│   ├── forecast/forecast.mjs       # graduatorie e cache
 │   ├── ecology/ecology.mjs, model.mjs
+│   ├── diary/diary.mjs             # localStorage + CSV/JSON
+│   ├── clients/botanica-api.mjs    # API client Botanica
 │   ├── clients/weather.mjs
-│   └── shared/display.mjs
+│   ├── shared/display.mjs, geo.mjs
+│   └── shared/
 ├── src/backend/hosted/backend.mjs   # backend Worker hosted
 ├── data/catalog/trekking-fallback.json
 ├── data/forecast/forecast-points.json
 ├── vendor/leaflet/                  # Leaflet e licenza
 ├── dist/                            # esclusivamente output generato
 ├── scripts/
+│   ├── build-assets.mjs
 │   ├── build-hosted.mjs
 │   ├── build_maremma_catalog.py
 │   └── select_forecast_points.py
 ├── tests/
+│   ├── botanica-api.test.mjs
+│   ├── diary.test.mjs
 │   ├── ecology.test.mjs
 │   ├── forecast.test.mjs
+│   ├── grid-scan.test.mjs
 │   ├── weather.test.mjs
 │   └── test_server.py
 └── research/

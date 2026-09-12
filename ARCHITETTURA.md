@@ -36,10 +36,13 @@ In locale le API sono implementate da `server.py`. Sul sito privato hanno lo ste
 | --- | --- | --- |
 | `src/frontend/index.html` | Struttura delle schermate e testi statici | si aggiunge una scheda, un comando o una sezione |
 | `src/frontend/styles/main.css` | Colori, layout responsive, mappa, schede e stampa | cambia l'aspetto grafico |
-| `src/frontend/app/main.mjs` | Controller, mappa Leaflet, punto selezionato, confronto 3x3 e diario | cambia il comportamento generale della UI o della mappa |
-| `src/frontend/forecast/forecast.mjs` | Graduatoria dei boschi e finestra migliore nei sette giorni | cambia il confronto automatico tra zone |
+| `src/frontend/app/main.mjs` | Controller principale, bootstrap UI, navigazione e coordinamento delle viste | cambia il comportamento generale della UI o della mappa |
+| `src/frontend/map/map.mjs` | Creazione e aggiornamento della mappa Leaflet, marker, poligoni, raggio e layer base | cambia il comportamento della mappa o la gestione dei layer Leaflet |
+| `src/frontend/analysis/grid-scan.mjs` | Generazione e ordinamento dei 9 punti 3x3, con weather condiviso e gestione errori per punto | cambia la geometria o il ranking del confronto 3x3 |
+| `src/frontend/forecast/forecast.mjs` | Previsioni dei boschi campione, cache locale e graduatorie | cambia il confronto automatico tra zone |
 | `src/frontend/ecology/ecology.mjs` | Habitat, profili delle specie, fattori e indice sperimentale | cambiano soglie, pesi o specie fungine |
 | `src/frontend/around/around.mjs` | Centro/raggio, trekking, flora, natura e meteo dell'uscita | cambia la vista "Intorno a me" |
+| `src/frontend/clients/botanica-api.mjs` | Centralizza `/api/environment`, `/api/land`, `/api/around` e validazione coordinate | cambiano endpoint o parametri delle API frontend |
 | `src/frontend/clients/weather.mjs` | Richiesta Open-Meteo dal browser e indice meteo per uscire | cambiano i parametri meteo comuni |
 | `src/frontend/ecology/model.mjs` | Zone pilota e compatibilita' con il modello precedente | si rinomina o descrive una macrozona |
 | `data/forecast/forecast-points.json` | 21 punti campione usati nelle previsioni | si aggiunge o corregge un bosco campione |

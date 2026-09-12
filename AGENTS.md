@@ -6,6 +6,17 @@
 - Verificare il codice reale prima di assumere che la documentazione sia aggiornata.
 - Eseguire test e build baseline quando l'ambiente lo consente.
 
+## Regole finali di refactoring
+
+- `dist/` è output generato: non si modifica manualmente e va ricostruito da `src/`, `data/` e `vendor/`.
+- Nuove feature frontend vanno nel modulo di dominio corretto: `app/` per orchestrazione, `map/` per Leaflet, `analysis/` per grid scan, `clients/` per API Botanica, `forecast/` e `around/` per le viste, `ecology/` per il modello e `diary/` per localStorage.
+- Tutti i fetch verso `/api/environment`, `/api/land` e `/api/around` passano dal client in `src/frontend/clients/botanica-api.mjs`.
+- `ecology.mjs` e `model.mjs` non cambiano semanticamente senza test e documentazione dedicati.
+- `missing data != zero`: i dati mancanti restano null/assenti e non vengono trasformati in falsi valori numerici.
+- Provenance, dataset, versioni, risoluzione e limiti delle fonti vanno documentati quando disponibili.
+- I nuovi file frontend devono essere inclusi nel build ricorsivo di `scripts/build-assets.mjs`.
+- Prima di commit importanti occorre che `npm test` sia verde.
+
 ## Perimetro del refactoring
 
 - Preferire modifiche piccole, isolate e facilmente reversibili.

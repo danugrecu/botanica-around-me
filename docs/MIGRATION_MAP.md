@@ -242,4 +242,4 @@ Questa checklist sarà eseguita nello Step 2.2/2.3, non ora:
 
 ## Stato della migrazione strutturale
 
-Step 2.1 completato come analisi. Step 2.2 e 2.3 applicati: i file sono nei percorsi target, gli import frontend sono stati aggiornati per la nuova struttura, `build-assets.mjs` ricrea `dist/` e `build-hosted.mjs` usa gli asset generati e la sorgente hosted sotto `src/backend/hosted/`. Step 2.4 è verificabile dopo un build Node riuscito; non sono stati modificati algoritmi, contratti API o dataset.
+La migrazione `dist mixed source -> src / data / vendor / generated dist` è completata: i file sorgente sono separati da `data/` e `vendor/`, `dist/` rimane un output generato e il build ricorsivo ricrea i file runtime senza che gli asset sorgente vengano modificati direttamente. Gli import frontend, i client Botanica e il gestore mappa sono coerenti con la struttura finale. Non sono stati modificati algoritmi, contratti API o dataset, e la documentazione riflette lo stato reale dell'applicazione.

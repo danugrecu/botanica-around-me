@@ -234,3 +234,16 @@ dist/server/* e dist/.openai/*
 ## Regola di avanzamento
 
 Non accorpare i sotto-step 2.1-2.4: ciascuno deve lasciare test e build verificabili, documentare il rischio residuo e non includere nuove feature, nuove soglie, nuovi pesi o nuovi provider. Dopo la fase strutturale, mantenere separati anche gli step 3-9; ogni commit successivo deve essere piccolo e reversibile.
+
+## FUTURE TECHNICAL DEBT
+
+Le attività che restano fuori scope per questa fase, ma non sono più parte della baseline di refactoring, sono:
+
+- modularizzazione del backend Python locale (`server.py`), da fare solo con nuovi requisiti funzionali veri;
+- separazione ulteriore del backend hosted (`src/backend/hosted/backend.mjs`), senza toccare il contratto API;
+- contract test Python/Worker più completi per comparare risposte reali e fixture;
+- eventuale eliminazione della compatibilità legacy di `estimate()` in `src/frontend/ecology/model.mjs`;
+- divisione futura del modulo `around/` se il contenuto della vista crescerà oltre il modello attuale;
+- componentizzazione UI e decoupling visuale più profondo, non necessario per il MVP attuale.
+
+Questa fase si conclude lasciando la struttura modulare, il cliente Botanica centralizzato, la mappa separata e la base documentata pronta per lo sviluppo del vero MVP.

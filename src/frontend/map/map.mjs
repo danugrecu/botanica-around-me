@@ -86,7 +86,7 @@ export function createMap(containerId, options = {}) {
     )
     .addTo(map);
 
-  return {
+  const controller = {
     map,
     base,
     forest,
@@ -96,5 +96,37 @@ export function createMap(containerId, options = {}) {
     polygon,
     nearLayer,
     pointMarker,
+    setPoint(lat, lon) {
+      if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        pointMarker.setLatLng([lat, lon]);
+        map.panTo([lat, lon]);
+      }
+      return controller;
+    },
+    setRadius(radiusKm, center = options.center) {
+      const nextCenter = center ?? { lat: 42.82, lon: 11.13 };
+      radiusLayer.setLatLng([nextCenter.lat, nextCenter.lon]);
+      radiusLayer.setRadius((Number(radiusKm) || 0) * 1000);
+      return controller;
+    },
+    drawPolygon(feature) {
+      polygon.clearLayers();
+      if (feature) polygon.addData(feature);
+      return controller;
+    },
+    clearNearby() {
+      nearLayer.clearLayers();
+      return controller;
+    },
+    setView(lat, lon, zoom = 13) {
+      map.setView([lat, lon], zoom);
+      return controller;
+    },
+    onClick(handler) {
+      map.on('click', handler);
+      return controller;
+    },
   };
+
+  return controller;
 }

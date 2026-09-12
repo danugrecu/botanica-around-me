@@ -5,6 +5,7 @@
 import { percent } from '../shared/display.mjs';
 import { zones, predict, today, level } from '../ecology/ecology.mjs';
 import { fetchBrowserWeather } from '../clients/weather.mjs';
+import { getEnvironment } from '../clients/botanica-api.mjs';
 export function summarizeForecast(env, days, species, date) {
   const daily = days.map((day) => ({ day, ...predict(env, day, species) }));
   const usable = daily.filter((r) => r.score !== null);
@@ -117,11 +118,9 @@ export function setupForecast({
           if (cached && cached.day === today() && Date.now() - cached.at < age)
             rec.env = cached.env;
           else {
-            const response = await fetch(`/api/environment?lat=${rec.lat}&lon=${rec.lon}`, {
+            rec.env = await getEnvironment({ lat: rec.lat, lon: rec.lon }, null, {
               signal: AbortSignal.timeout(70000),
             });
-            if (!response.ok) throw Error();
-            rec.env = await response.json();
             if (rec.env.weather?.status !== 'ok')
               rec.env.weather = await fetchBrowserWeather(rec.lat, rec.lon);
             if (rec.env.weather?.status === 'ok' && rec.env.forest?.status === 'ok')

@@ -8,6 +8,7 @@
 import { percent } from '../shared/display.mjs';
 import { distanceKm, directionFrom, insideMaremma } from '../shared/geo.mjs';
 import { buildGridScanPoints } from '../analysis/grid-scan.mjs';
+import { createMap } from '../map/map.mjs';
 import { setupForecast } from '../forecast/forecast.mjs';
 import { setupAround } from '../around/around.mjs';
 import { fetchBrowserWeather } from '../clients/weather.mjs';
@@ -40,6 +41,7 @@ let species = 'porcini',
   env = null,
   point = { lat: 42.925, lon: 11.115, name: 'Monti Leoni · centro Maremma' },
   map,
+  mapController,
   pointMarker,
   polygon,
   forecastAreas,
@@ -96,6 +98,7 @@ function resetNearby() {
   scanRequest++;
   nearby = [];
   $('#nearby').hidden = true;
+  if (mapController) mapController.clearNearby();
   if (nearLayer) nearLayer.clearLayers();
 }
 async function selectPoint(lat, lon, name = 'Punto nel bosco') {
@@ -123,9 +126,8 @@ async function selectPoint(lat, lon, name = 'Punto nel bosco') {
   $('#detail').innerHTML = '<p>Analisi delle quattro fonti in corso…</p>';
   $('#evidence-content').innerHTML = '';
   if (polygon) polygon.clearLayers();
-  if (map) {
-    pointMarker.setLatLng([lat, lon]);
-    map.panTo([lat, lon]);
+  if (mapController) {
+    mapController.setPoint(lat, lon);
   }
   try {
     const result = await getEnvironment({ lat, lon }, null, {
@@ -159,10 +161,18 @@ async function selectPoint(lat, lon, name = 'Punto nel bosco') {
   }
 }
 function drawPolygon() {
-  if (!polygon || !env) return;
-  polygon.clearLayers();
+  if (!env) return;
   const f = habitat(env).land;
-  if (f?.geometry) polygon.addData({ type: 'Feature', geometry: f.geometry, properties: {} });
+  if (f?.geometry) {
+    const feature = { type: 'Feature', geometry: f.geometry, properties: {} };
+    if (mapController) mapController.drawPolygon(feature);
+    if (polygon) {
+      polygon.clearLayers();
+      polygon.addData(feature);
+    }
+  } else if (mapController) {
+    mapController.drawPolygon(null);
+  }
 }
 function metric(label, value, unit = '', detail = '') {
   return `<div class="metric"><strong>${value}<small> ${unit}</small></strong><span>${label}</span>${detail ? `<small class="metric-note">${detail}</small>` : ''}</div>`;
@@ -338,6 +348,9 @@ function renderNearby() {
   }
 }
 function updateRadiusView(fit = false) {
+  if (mapController) {
+    mapController.setRadius(radiusKm, aroundCenter);
+  }
   if (!map || !radiusLayer) return;
   radiusLayer.setLatLng([aroundCenter.lat, aroundCenter.lon]).setRadius(radiusKm * 1000);
   $('#map-context').textContent = `${aroundCenter.name} · raggio ${radiusKm} km`;
@@ -436,71 +449,22 @@ $('#locate-top').onclick = () => {
   $('#locate').click();
 };
 try {
-  map = L.map('map', { zoomControl: false, scrollWheelZoom: true }).setView(
-    [point.lat, point.lon],
-    13,
-  );
-  L.control.zoom({ position: 'topright' }).addTo(map);
-  const base = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    maxZoom: 18,
-  }).addTo(map);
-  const forest = L.tileLayer.wms(
-    'https://www502.regione.toscana.it/wmsraster/com.rt.wms.RTmap/wms?map=wmsucs',
-    {
-      layers: 'rt_ucs.iducs.10k.2019.rt.full',
-      format: 'image/png',
-      transparent: true,
-      version: '1.1.1',
-      opacity: 0.45,
-      attribution: 'Regione Toscana · UCS 2019',
-    },
-  );
-  const vegetation = L.tileLayer.wms(
-    'https://www502.regione.toscana.it/wmsraster/com.rt.wms.RTmap/wms?map=wmsucs',
-    {
-      layers: 'rt_ucs.idvegfor.rt',
-      format: 'image/png',
-      transparent: true,
-      version: '1.1.1',
-      opacity: 0.5,
-      attribution: 'Regione Toscana · vegetazione storica',
-    },
-  );
-  L.control
-    .layers(
-      { OpenStreetMap: base },
-      { 'Copertura del suolo · 2019': forest, 'Vegetazione · carta storica': vegetation },
-      { position: 'bottomright' },
-    )
-    .addTo(map);
-  radiusLayer = L.circle([aroundCenter.lat, aroundCenter.lon], {
-    radius: radiusKm * 1000,
-    color: '#61736c',
-    weight: 2,
-    dashArray: '7 7',
-    fillColor: '#dce7da',
-    fillOpacity: 0.05,
-    interactive: false,
-  }).addTo(map);
-  forecastAreas = L.layerGroup().addTo(map);
-  polygon = L.geoJSON(null, {
-    style: { color: '#173c34', weight: 4, fillColor: '#dcec98', fillOpacity: 0.16 },
-    interactive: false,
-  }).addTo(map);
-  nearLayer = L.layerGroup().addTo(map);
-  pointMarker = L.circleMarker([point.lat, point.lon], {
-    radius: 8,
-    color: '#fff',
-    weight: 3,
-    fillColor: '#173c34',
-    fillOpacity: 1,
-  }).addTo(map);
-  map.on('click', (e) => selectPoint(e.latlng.lat, e.latlng.lng));
-  base.on('tileerror', () => {
+  mapController = createMap('map', {
+    center: aroundCenter,
+    radiusKm,
+    point: { lat: point.lat, lon: point.lon },
+  });
+  map = mapController.map;
+  radiusLayer = mapController.radiusLayer;
+  forecastAreas = mapController.forecastAreas;
+  polygon = mapController.polygon;
+  nearLayer = mapController.nearLayer;
+  pointMarker = mapController.pointMarker;
+  mapController.onClick((e) => selectPoint(e.latlng.lat, e.latlng.lng));
+  mapController.base.on('tileerror', () => {
     $('#geo-status').textContent = 'Sfondo cartografico non disponibile. Puoi usare le coordinate.';
   });
-  for (const layer of [forest, vegetation])
+  for (const layer of [mapController.forest, mapController.vegetation])
     layer.on('tileerror', () => {
       $('#geo-status').textContent =
         'Questo strato regionale non è al momento disponibile. Le altre fonti restano interrogabili.';
