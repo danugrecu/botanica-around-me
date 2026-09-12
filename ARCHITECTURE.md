@@ -1,24 +1,20 @@
 # ARCHITECTURE.md
 
-## High-level architecture
+## Obiettivo dell'architettura
 
-```text
-Browser
-  ↓
-generated dist
-  ↓
-frontend modules
-  ↓
-Botanica API
-  ↓
-Python local backend / hosted Worker
-  ↓
-external providers
-```
+Il progetto è un'applicazione frontend statica con backend locale e backend hosted compatibile. Il codice sorgente vive sotto `src/`, i dati runtime sotto `data/`, la libreria mappe Leaflet sotto `vendor/leaflet`, e i risultati di build sotto `dist/`.
 
-The app is a browser-first frontend that sends requests to the local backend or the hosted Worker, which in turn call the external data providers. The frontend modules are organized by responsibility and the runtime output is generated under `dist/` from source under `src/`, `data/` and `vendor/`.
+L'architettura mantiene una separazione netta tra:
 
-## Repository structure
+- orchestrazione UI e stato `src/frontend/app/`
+- rendering e layer mappa `src/frontend/map/`
+- accesso ai dati `src/frontend/clients/`
+- logica ecologica e forecast `src/frontend/ecology/` e `src/frontend/forecast/`
+- dominio Around Me `src/frontend/around/`
+- persistenza locale `src/frontend/diary/`
+- helper condivisi e geografia `src/frontend/shared/`
+
+## Struttura del repository
 
 ```text
 .
@@ -57,154 +53,135 @@ The app is a browser-first frontend that sends requests to the local backend or 
 │   └── select_forecast_points.py
 ├── tests/
 ├── dist/
-└── .gitignore
+├── .gitignore
+└── .vscode/
 ```
 
-## Frontend modules
+## Frontend
 
 ### `src/frontend/app/main.mjs`
 
-This is the main application orchestrator. It still keeps a non-trivial amount of UI state, render coordination, navigation and event wiring, but it no longer owns the Leaflet setup itself or the Botanica API request composition.
+È il controller principale dell'app. Coordina la UI, la mappa, la selezione del punto, il diario, i risultati di forecast e i rendering delle schede.
 
 ### `src/frontend/map/map.mjs`
 
-Dedicated Leaflet controller. It owns:
-
-- map creation;
-- base tile layer and WMS overlays;
-- point marker;
-- radius circle;
-- polygon layer;
-- near-layer updates;
-- basic click handling.
-
-It does not compute Ecology scores, diary data or external provider calls.
-
-### `src/frontend/analysis/grid-scan.mjs`
-
-Generates the nine nearby points used by the 3x3 comparison. It preserves the same nominal 500 m step and ordering and is testable without DOM logic.
+Contiene la logica Leaflet: creazione della mappa, layer base, marker, raggio, polygon e aggiornamento dei layer vicini.
 
 ### `src/frontend/around/around.mjs`
 
-Handles Around Me, including the center/radius, regional overlays, live data merging, catalog fallback, flora and nature points, and the resulting view state.
+Gestisce il quadro d'insieme “Around Me”: centro/raggio, percorsi, flora, natura, aree protette e meteo del contesto.
 
 ### `src/frontend/forecast/forecast.mjs`
 
-Loads forecast points, keeps the local cache, requests the environment for each point, ranks the results and renders the best contiguous favorable window.
+Carica i punti campione, mantiene la cache locale e confronta i risultati ambientali per ottenere la migliore finestra favorevole in 7 giorni.
 
 ### `src/frontend/ecology/ecology.mjs`
 
-Contains the ecological scoring logic, species profiles, weather summaries and the heuristic model used for fungal compatibility and context scoring.
+Contiene la logica di punteggio ecologico: profili species, fattori idrici/termici/ospiti e l'euristica di compatibilità ambientale.
 
 ### `src/frontend/ecology/model.mjs`
 
-Contains the static model metadata and compatibility catalog. It is still relevant for the current prototype, including the legacy `estimate()` compatibility path.
-
-### `src/frontend/diary/diary.mjs`
-
-Manages localStorage persistence, diary normalization, CSV export and JSON backup for the browser-only log.
+Contiene metadata del modello e cataloghi di compatibilità; include anche il percorso legacy `estimate()` per compatibilità esistente.
 
 ### `src/frontend/clients/botanica-api.mjs`
 
-Centralizes all frontend requests to:
+È il client canonico per le API del backend:
 
 - `/api/environment`
 - `/api/land`
 - `/api/around`
 
-This is the canonical browser-side request layer for Botanica endpoints.
-
 ### `src/frontend/clients/weather.mjs`
 
-Browser fallback client for Open-Meteo and outdoor-score logic used when the backend response is not available or incomplete.
+È l'eccezione intenzionale al client centrale: usa il fallback browser di Open-Meteo per la parte meteo quando il backend non restituisce dati sufficienti.
 
-### `src/frontend/shared/*`
+## Backend
 
-Shared helpers for display formatting and geographic calculations, mainly:
+### `server.py`
 
-- `display.mjs`
-- `geo.mjs`
+È il backend locale. Espone endpoint API e gestisce la composizione delle richieste verso provider regionali, Open-Meteo e OSM/Overpass.
 
-## Backend local
+### `src/backend/hosted/backend.mjs`
 
-`server.py` remains the local backend entry point. It serves the generated static files from `dist/` and exposes the URLs:
+È la controparte hosted del backend locale. Usa lo stesso contratto applicativo per deployment esterno.
 
-- `GET /api/environment`
-- `GET /api/land`
-- `GET /api/around`
+## Dati ed asset
 
-It still performs the full request composition and provider orchestration in one file. This is intentionally monolithic for now and is not being refactored in this phase.
+### `data/catalog/trekking-fallback.json`
 
-## Hosted backend
+Catalogo locale di trekking e luoghi naturali usato come fallback stabile.
 
-`src/backend/hosted/backend.mjs` is the hosted Worker equivalent of the local backend. It duplicates the same runtime logic contract, with the same external provider structure and the same endpoint URLs, but is packaged for hosted deployment. The two backends are intentionally similar, but not yet merged into a shared service layer.
+### `data/forecast/forecast-points.json`
 
-## Runtime data
+Punti campione usati per il forecast territoriale e il ranking.
 
-The runtime datasets live under:
+### `vendor/leaflet/`
 
-- `data/catalog/trekking-fallback.json`
-- `data/forecast/forecast-points.json`
+Leaflet è vendorizzato nel repository e non va installato con npm.
 
-These are static runtime inputs used by the app and are published into `dist/` by the build process.
+### `dist/`
 
-## Vendor
+Directory di output generato. Non è sorgente. Viene costruita da `scripts/build-assets.mjs`.
 
-Leaflet is vendored locally under:
+## Build e runtime
 
-- `vendor/leaflet/`
+Comandi validi e attuali:
 
-This keeps the third-party JS/CSS assets under repository control and avoids a package install requirement for the UI map library.
-
-## Build
-
-The runtime output is generated from source, data and vendor assets:
-
-```text
-src + data + vendor
-  → scripts/build-assets.mjs
-  → dist/
+```bash
+npm run build:assets
+npm test
+npm start
+npm run build
+python server.py
 ```
 
-`scripts/build-assets.mjs` copies the frontend and static runtime assets into the generated output directory. `scripts/build-hosted.mjs` packages the hosted backend and the generated asset tree into the Worker bundle. `dist/` is generated output only and is not a source directory.
+### `npm run build:assets`
 
-## Storage
+Genera `dist/` a partire da `src/`, `data/` e `vendor/`.
 
-The browser persists local data in localStorage under the following keys:
+### `npm test`
 
-- `fungapp-logs-v1`
-- `botanica-around-v3:*`
-- `fungapp-prediction-v2:*`
+Esegue build degli asset e i test JavaScript/Python.
 
-These keys are intentionally preserved for compatibility with the existing application behavior.
+### `npm start`
 
-## API contracts
+Esegue `npm run build:assets` e poi `python server.py` sulla porta `4173`.
 
-The current API contract is deliberately minimal and consistent with the current implementation:
+### `npm run build`
+
+Genera il Worker hosted. Richiede `.openai/hosting.json` e non è un install di dipendenze.
+
+### `python server.py`
+
+Avvia direttamente il backend locale usando la build già presentata in `dist/`.
+
+## Contratti API principali
 
 ### `GET /api/environment?lat=...&lon=...`
 
-Returns the full environmental context for the selected point, including forest, soil, terrain and weather data.
+Ritorna contesto ambientale completo del punto: bosco, suolo, rilievo e meteo.
 
 ### `GET /api/land?lat=...&lon=...`
 
-Returns land, forest and terrain context without the weather payload. It is used for the 3x3 comparison around the selected point.
+Ritorna contesto territoriale senza meteo, usato per il confronto 3x3.
 
 ### `GET /api/around?lat=...&lon=...&radius=...`
 
-Returns the surrounding local context for trails, nature, flora, and the day weather, within the requested radius.
+Ritorna trekking, flora, natura e clima locale entro il raggio richiesto.
 
-All responses may carry partial availability via `status: "unavailable"` or missing fields; the UI is expected to handle partial data without converting missing values to zero.
+## Regole tecniche importanti
 
-## Known technical debt
+- `dist/` è output generato; non si modifica manualmente.
+- `missing data != zero`: dati mancanti restano null o assenti.
+- Prove, risoluzione e limiti delle fonti devono essere preservati.
+- Il frontend non chiama i provider diretti; usa il client centralizzato, salvo l'eccezione intenzionale del fallback browser meteo.
+- Nessuna dipendenza installabile di Node è richiesta nel repository attuale.
+- Leaflet è vendorizzato e non va installato.
 
-These are real and still relevant, but they are not blocker-level issues for the current MVP:
+## Limiti noti
 
-- `server.py` is still monolithic and not split into services/providers.
-- `src/backend/hosted/backend.mjs` duplicates the local backend logic.
-- `src/frontend/app/main.mjs` still carries a meaningful amount of orchestration and rendering work.
-- The 3x3 comparison is functionally there but not fully extracted into a dedicated runtime-only module.
-- Python/Worker contract testing is still improvable.
-- The legacy `estimate()` path in `model.mjs` remains as compatibility code.
-
-These are documented as technical debt, not as a reason to avoid the current product baseline.
+- Il backend locale è ancora monolitico.
+- Il Worker hosted duplica la logica del backend locale.
+- Il modello ecologico è euristico e non scientificamente validato.
+- Le fonti hanno età e risoluzioni diverse e vanno usate con prudenza.
+- I dati mancanti non si trasformano mai in zero.

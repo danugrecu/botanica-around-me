@@ -1,106 +1,225 @@
 # ON-BOARDING.md
 
+## Obiettivo
+
+Questa è la guida per mettere in piedi il progetto su un PC nuovo e farlo partire senza installare dipendenze extra. Il repository usa Git, Python 3 e Node.js/npm, ma non richiede `npm install` perché non ci sono `dependencies` o `devDependencies` in `package.json`.
+
+## Verifica del codice reale
+
+Il file `package.json` attuale contiene solo script di build/test/start e non definisce `dependencies` né `devDependencies`.
+
+Questo implica che:
+
+- NON serve eseguire `npm install`;
+- il runtime dipende da strumenti già presenti sul PC;
+- Leaflet è vendorizzato sotto `vendor/leaflet` e non va installato con npm;
+- `server.py` usa solo la standard library di Python.
+
 ## Prerequisiti
 
-- Python 3
-- Node.js/npm
-- accesso a internet per le chiamate ai provider esterni
+### Git
 
-## Setup locale
+Git serve per clonare il repository, aggiornare il codice e gestire il version control.
 
-1. Aprire la cartella del repository.
-2. Verificare che `server.py`, `src/`, `data/`, `scripts/` e `tests/` siano presenti.
-3. Eseguire il comando di installazione se previsto dal progetto locale: in questo repo non servono dipendenze npm aggiuntive per il runtime di base.
+Installazione:
 
-## Comandi principali
+- Windows: installare Git for Windows da https://git-scm.com/downloads
+- macOS: `brew install git`
+- Linux: usare il package manager della distribuzione
 
-### Avvio locale
+Verifica:
+
+```bash
+git --version
+```
+
+### Python 3
+
+Python 3 serve per avviare il backend locale `server.py` e per eseguire i test Python.
+
+Verifica:
+
+```bash
+python --version
+```
+
+Il codice usa solo la standard library, senza dipendenze Python aggiuntive.
+
+### Node.js LTS
+
+Node.js LTS serve per eseguire i test, generare gli asset runtime e avviare il progetto in ambiente locale.
+
+Verifica:
+
+```bash
+node --version
+```
+
+### npm
+
+`npm` viene installato insieme a Node.js e serve per eseguire gli script definiti in `package.json`.
+
+Verifica:
+
+```bash
+npm --version
+```
+
+### Browser moderno
+
+Serve un browser aggiornato per usare la mappa Leaflet, la geolocalizzazione e la UI del frontend.
+
+### VS Code (opzionale)
+
+È un editor valido per lavorare sul repository, ma non è un prerequisito di runtime.
+
+## Setup completo da zero
+
+```bash
+git clone https://github.com/danugrecu/botanica-around-me.git
+cd botanica-around-me
+
+git --version
+node --version
+npm --version
+python --version
+```
+
+Poi esegui:
+
+```bash
+npm test
+npm start
+```
+
+L'app sarà disponibile a:
+
+```text
+http://localhost:4173
+```
+
+## Cosa fanno i comandi principali
+
+### `npm run build:assets`
+
+Genera `dist/` a partire da `src/`, `data/` e `vendor/`.
+
+### `npm test`
+
+Esegue:
+
+- `npm run build:assets`
+- test JavaScript con `node --test tests/*.test.mjs`
+- test Python con `python -m unittest discover -s tests`
+
+### `npm start`
+
+Esegue esattamente:
+
+```bash
+npm run build:assets
+python server.py
+```
+
+In pratica:
+
+1. genera `dist/`
+2. avvia `server.py`
+3. il backend serve la UI su `http://localhost:4173`
+
+### `npm run build`
+
+Genera il Worker hosted. Questo comando richiede il file `.openai/hosting.json` e non è un install di dipendenze. Se il file non è presente, il build non può completare.
+
+### `python server.py`
+
+Avvia direttamente il backend locale senza usare `npm start`.
+
+## Esecuzione locale
 
 ```bash
 npm start
 ```
 
-Questo comando:
+Aprire poi nel browser:
 
-- genera gli asset in `dist/` via `scripts/build-assets.mjs`;
-- avvia `server.py`;
-- espone la UI su http://localhost:4173.
-
-### Test
-
-```bash
-npm test
+```text
+http://localhost:4173
 ```
 
-Questo comando:
+## Troubleshooting
 
-- ricostruisce gli asset;
-- esegue i test JavaScript con `node --test`;
-- esegue i test Python con `python -m unittest discover -s tests`.
+### Git non riconosciuto
 
-### Build assets
+Verifica che Git sia installato e che il binario sia nel PATH.
+
+```bash
+git --version
+```
+
+Se non viene riconosciuto, reinstallare Git e riavviare il terminale.
+
+### Node.js / npm non riconosciuti
+
+Verifica:
+
+```bash
+node --version
+npm --version
+```
+
+Se non vengono riconosciuti, installare Node.js LTS e riavviare il terminale.
+
+### Python non riconosciuto
+
+Verifica:
+
+```bash
+python --version
+```
+
+Se il comando non funziona, installare Python 3 e assicurarsi che il comando sia disponibile nel PATH.
+
+### Porta 4173 occupata
+
+Se la porta è già usata, chiudere il processo che la sta usando oppure modificare il server locale per usare un'altra porta. In questo repo, il comando standard è `npm start` e usa la porta `4173`.
+
+### `dist/` assente
+
+Eseguire:
 
 ```bash
 npm run build:assets
 ```
 
-Genera la versione statica frontend e i dati runtime in `dist/`.
+Se `dist/` è mancante, l'app non può essere servita correttamente.
 
-### Build hosted
+### Internet o provider non disponibili
+
+L'app usa provider esterni come Regione Toscana, Open-Meteo e Overpass/OSM. Se la rete o i provider sono indisponibili, alcuni dati possono essere assenti o parziali: il comportamento previsto è mostrare dati disponibili e lasciare i campi mancanti null/assenti.
+
+### `.openai/hosting.json` assente durante build hosted
+
+Il comando:
 
 ```bash
 npm run build
 ```
 
-Scarica il pacchetto hosted per il Worker deployment, usando `scripts/build-hosted.mjs`.
+richiede il file `.openai/hosting.json` nel workspace. Se manca, il build hosted non può completare.
 
-### Avvio diretto del backend
-
-```bash
-python server.py
-```
-
-## Struttura importante
-
-- `src/frontend/`: frontend modulo per mappa, around, forecast, ecology, diary, clients e shared helpers.
-- `src/backend/hosted/`: backend hosted per deployment e contratti equivalenti a `server.py`.
-- `data/`: dataset di runtime e catalogo di fallback.
-- `vendor/`: Leaflet vendored.
-- `scripts/`: build, asset generation e strumenti di generazione dati.
-- `tests/`: suite di regressione Node e Python.
-- `dist/`: output generato, non sorgente.
-
-## Regole di sviluppo
-
-- Non modificare il comportamento dell'app senza test o documentazione aggiornati.
-- Mantieni `dist/` come output generato.
-- Non trasformare dati mancanti in zero.
-- Aggiorna sempre il file documentale corretto quando cambiano architettura, setup o fonti.
-- Tutti i fetch verso `/api/environment`, `/api/land` e `/api/around` devono passare dal client centralizzato.
-
-## Problemi comuni
-
-### `npm start` o `npm test` falliscono
-
-Verifica:
-
-- che Node.js/npm sia installato;
-- che Python 3 sia disponibile;
-- che la cartella di lavoro sia la root del repository;
-- che ci sia connettività internet per le chiamate esterne di meteo e cartografia.
-
-### Il backend non risponde
-
-Controlla:
-
-- la presenza del processo `python server.py`;
-- la corretta configurazione della porta 4173;
-- la generazione di `dist/` da `npm run build:assets`.
-
-## Documenti chiave
+## File chiave
 
 - [README.md](README.md)
 - [ARCHITECTURE.md](ARCHITECTURE.md)
 - [AGENTS.md](AGENTS.md)
 - [DATA_SOURCES.md](DATA_SOURCES.md)
 - [ON-BOARDING.md](ON-BOARDING.md)
+
+## Note importanti
+
+- Non serve `npm install`.
+- Non serve installare Leaflet separatamente.
+- `server.py` usa solo la standard library Python.
+- `dist/` è output generato e va ricostruito dal build.
+- La documentazione del repository non deve riferirsi a file obsoleti o cartelle rimosse.
