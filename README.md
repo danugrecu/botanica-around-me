@@ -1,59 +1,85 @@
-# Botanica Around Me — Maremma privata
+# Botanica Around Me
 
-Avvio locale: `npm start`, quindi aprire http://localhost:4173. La versione condivisa usa un Worker HTTP equivalente ed è protetta dalla lista di due account autorizzati. Entrambe richiedono internet per le fonti esterne.
+## Obiettivo dell'MVP
 
-Per orientarsi nel codice, partire da [`ARCHITETTURA.md`](ARCHITETTURA.md) e [`docs/CURRENT_ARCHITECTURE.md`](docs/CURRENT_ARCHITECTURE.md). Il codice frontend è sotto `src/frontend/`, il backend hosted sotto `src/backend/hosted/`, i dati runtime sotto `data/`, Leaflet sotto `vendor/` e `dist/` contiene esclusivamente output generato.
+Botanica Around Me è un assistente territoriale per la Maremma dedicato a chi vuole capire rapidamente cosa c'è intorno a una posizione scelta o rilevata, combinando territorio, meteo e segnali naturalistici. L'MVP non pretende di essere una previsione scientificamente validata: vuole aiutare l'utente a orientarsi tra boschi, sentieri, flora, condizioni ambientali e opportunità di uscita.
 
-## Funzioni
+L'applicazione è focalizzata sul territorio della Maremma e usa le coordinate del punto scelto per interrogare provider territoriali e meteo, normalizzare i risultati e presentare un giudizio euristico di compatibilità ambientale per funghi e formazioni naturali.
 
-- Panoramica “intorno a me” con centro scelto, geolocalizzazione e raggio 5/10/25/50 km.
-- Trekking: tracciati dell'Itinerario Naturalistico Toscano e itinerari escursionistici OSM, ordinati per distanza.
-- Flora: osservazioni GBIF degli ultimi cinque anni, filtrate sul raggio reale, con data e incertezza delle coordinate.
-- Natura: riserve regionali, siti Natura 2000 e aree protette nominate, delineate sulla mappa.
-- Suggerimenti giornalieri basati su vicinanza e meteo. Il punteggio per uscire valuta pioggia, temperatura e vento e non è un indice di sicurezza del sentiero.
-- Selezione puntuale su Leaflet, coordinate WGS84 e geolocalizzazione del dispositivo con accuratezza esplicita.
-- Centro e raggio 5/10/25/50 km: la graduatoria mostra solo i punti campione inclusi e indica distanza e direzione dell'area migliore.
-- Tutti i boschi verificati sono delineati con il poligono UCS 2019 che contiene il campione e colorati in base all'indice del giorno. Il popup separa coordinate, riferimento locale e fattori ambientali.
-- Poligono UCS 2019 realmente interrogato (scala 1:10.000), intersezione punto/poligono comprensiva dei buchi. Esclusione automatica dei punti non boscati.
-- Vegetazione regionale (celle 250 m, scala nominale 1:250.000) e IFT storico (400 m) quando presenti; specie e dati storici esplicitamente distinti dalla copertura più recente.
-- Pedologia: AWC, tessitura e nome dell'unità cartografica. Drenaggio e altri attributi sono disponibili nella risposta grezza ma non interpretati senza una legenda verificata.
-- Quota Copernicus GLO-90; pendenza e orientamento stimati dalle differenze centrate a ±90 m. Sono valori DEM, non misurazioni di precisione.
-- Meteo del punto: 30 giorni precedenti e 7 futuri; pioggia, temperature, gelo, ET0, vento, umidità aria, VPD, umidità suolo 3–9 e 9–27 cm e temperatura suolo 6 cm.
-- Profili separati aereus, reticulatus, edulis, pinophilus e Amanita caesarea. Il gruppo porcini mostra il massimo dei quattro indici, non probabilità aggregate.
-- Confronto 3×3 di punti a passo circa 500 m. Ciascun punto interroga bosco, pedologia e rilievo; il meteo è condiviso con il centro ed esplicitamente indicato. Selezionare un vicino carica il suo meteo.
-- Diario locale con coordinate, esito, durata della ricerca e snapshot di fattori/metriche; CSV e backup JSON. Lettura retrocompatibile delle uscite v1.
+## Funzionalità attuali
 
-## Stato e limiti
+| Feature | Descrizione | Modulo principale |
+| --- | --- | --- |
+| Around Me | Panoramica del centro scelto con raggio 5/10/25/50 km, trekking, flora, natura e meteo dell'uscita. | `src/frontend/around/around.mjs` |
+| Mappa | Mappa Leaflet con base OpenStreetMap, layer WMS regionali, marker, raggio, poligono e punti vicini. | `src/frontend/map/map.mjs` |
+| Analisi punto | Selezione del punto, interrogazione dei dati territoriali e meteo, rendering del contesto ambientale. | `src/frontend/app/main.mjs` + `src/frontend/clients/botanica-api.mjs` |
+| Funghi / Ecology | Valutazione euristica di compatibilità ambientale per specie e profili funghi. | `src/frontend/ecology/ecology.mjs` |
+| Forecast | Confronto automatico di punti campione e ranking dei boschi per giorno e specie. | `src/frontend/forecast/forecast.mjs` |
+| Confronto 3x3 | Generazione dei 9 punti a circa 500 m e confronto del territorio intorno al centro. | `src/frontend/analysis/grid-scan.mjs` + orchestrazione in `src/frontend/app/main.mjs` |
+| Diario | Persistenza locale delle uscite, snapshot, export CSV e backup JSON. | `src/frontend/diary/diary.mjs` |
+| Meteo browser fallback | In caso di indisponibilità del backend, il browser usa un fallback Open-Meteo per il meteo del punto. | `src/frontend/clients/weather.mjs` |
 
-Non è un modello predittivo validato. Pesi e soglie sono scelte euristiche, documentate nell'app e in `research/metodo-v2.md`. Dati con provenienza/risoluzione diversa non vengono presentati come prove indipendenti di accuratezza. Punti GPS a cinque decimali non implicano una previsione di fruttificazione a pochi metri. Il meteo resta dell'ordine dei chilometri. Non vengono inventati pH, micelio, gestione recente, incendi, lettiera o osservazioni di campo. Le osservazioni botaniche sono record storici e non garantiscono presenza o fioritura attuale; i dati escursionistici e i confini non certificano accessibilità o sicurezza.
+## Funzionamento generale
 
-Le sorgenti territoriali hanno età diverse. Errori/mancanze sono restituiti per fonte; i dati mancanti non diventano zeri. Cache soltanto in memoria (meteo 1 h, geografia 24 h). Nessuna memorizzazione server delle uscite. Le coordinate interrogate vengono inviate ai fornitori, non le note personali.
+Il flusso applicativo è diretto e semplice:
 
-## Sviluppo e verifica
+- l'utente seleziona un punto o usa la geolocalizzazione;
+- il frontend costruisce le richieste tramite il client Botanica;
+- il backend locale oppure il Worker hosted risponde con ambiente, territorio e meteo;
+- i dati vengono normalizzati e usati da Around, Ecology e Forecast;
+- la mappa e la UI mostrano il risultato in modo coerente.
 
-- Prerequisiti: Python 3 e Node.js/npm per test e build.
-- `npm start`: genera gli asset locali e avvia `server.py` su http://localhost:4173.
-- `npm run build:assets`: genera gli asset runtime in `dist/` senza richiedere `.openai/hosting.json`.
-- `npm test`: rigenera gli asset e avvia test Node e Python.
-- `npm run build`: genera asset e Worker hosted; richiede `.openai/hosting.json`.
-- `python server.py`: avvio diretto del server usando l'output già presente in `dist/`.
+In pratica, la logica è:
 
-Per le fonti consultare [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md); per la sequenza dei refactoring [`docs/REFACTOR_PLAN.md`](docs/REFACTOR_PLAN.md).
+posizione
+→ Botanica API
+→ provider territoriali e meteo
+→ normalizzazione
+→ Ecology / Around / Forecast
+→ UI e mappa
 
-## Verifica
+## Limitazioni MVP
 
-- `node tests/ecology.test.mjs`: 42 combinazioni specie/giorno, esclusione non-bosco e copertura sconosciuta, dati null, siccità, gelo, limiti habitat generico, isolamento scenario e massimo tra porcini.
-- `python3 -m unittest discover -s tests`: parsing GML multipart, poligoni con buchi, geometria del raggio e limiti dell'indice meteo per le uscite.
-- Integrazione su risposte reali di quattro fonti al punto 42.89,10.8 e controlli HTTP locale/coordinate fuori area.
-- Sintassi JS e Python verificata. Nessuna ispezione visuale o test interattivo del browser richiesto/eseguito.
-- WebMCP opzionale con feature detection. Nessun contesto WebMCP disponibile per il test del contratto: integrazione non verificata.
+- Il modello funghi è euristico: esprime compatibilità ambientale, non probabilità statisticamente validata di ritrovamento.
+- La precisione geografica dipende dalla risoluzione delle fonti territoriali e meteo, che sono di ordine di metri o chilometri diversi.
+- Le osservazioni GBIF sono storiche; non dimostrano presenza attuale né fioritura nel punto.
+- Sentieri, aree protette e riserve non certificano accessibilità, sicurezza o stato di apertura.
+- I dati mancanti non vengono trasformati in zero: restano assenti o null.
+- Il diario è locale nel browser e non viene inviato al server.
 
-## Dipendenze
+## Quick start
 
-Leaflet 1.9.4 (BSD-2-Clause) distribuito localmente con licenza. Python stdlib. Nessuna chiave API. Nessun invio automatico di messaggi o automazione pianificata.
+Prerequisiti:
 
-## Previsioni automatiche ripristinate
+- Python 3
+- Node.js/npm
 
-All'apertura `forecast.mjs` confronta automaticamente i punti campione in `forecast-points.json`, con graduatoria per giorno/specie e migliore finestra sui sette giorni. Riusa il modello ecologico v2 e mantiene analisi puntuale, scenari e diario. Le stime della graduatoria escludono scenari manuali. Cache nel browser fino a un'ora, con nuovo tentativo manuale. I punti senza copertura boscata verificata non ottengono un indice.
+Comandi principali:
 
-Verifica aggiuntiva: `node tests/forecast.test.mjs` controlla assenza dati, data selezionata, massimo e finestra di giorni consecutivi. La pubblicazione resta limitata ai due account autorizzati.
+- `npm test`
+- `npm start`
+
+Il server locale viene esposto a:
+
+- http://localhost:4173
+
+Per dettagli completi, vedere [ARCHITECTURE.md](ARCHITECTURE.md), [DATA_SOURCES.md](DATA_SOURCES.md), [ON-BOARDING.md](ON-BOARDING.md) e [AGENTS.md](AGENTS.md).
+
+## Repository map
+
+```text
+src/                 # frontend, backend hosted, business logic
+data/                # runtime data: catalog and forecast points
+vendor/              # vendored Leaflet assets
+scripts/             # build and data-generation helpers
+tests/               # Node and Python tests
+dist/                # generated output only
+```
+
+## Documentazione
+
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [DATA_SOURCES.md](DATA_SOURCES.md)
+- [ON-BOARDING.md](ON-BOARDING.md)
+- [AGENTS.md](AGENTS.md)
+
